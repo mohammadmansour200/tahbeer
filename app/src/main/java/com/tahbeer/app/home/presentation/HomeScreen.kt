@@ -2,6 +2,7 @@ package com.tahbeer.app.home.presentation
 
 import android.net.Uri
 import android.view.Gravity
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
@@ -47,6 +49,8 @@ import com.tahbeer.app.R
 import com.tahbeer.app.core.domain.CoreConstants.AUDIO_MIME_TYPES
 import com.tahbeer.app.core.domain.CoreConstants.VIDEO_MIME_TYPES
 import com.tahbeer.app.core.presentation.components.IconWithTooltip
+import com.tahbeer.app.core.presentation.utils.ObserveAsEvents
+import com.tahbeer.app.home.domain.model.ModelError
 import com.tahbeer.app.home.presentation.components.BottomSheetType
 import com.tahbeer.app.home.presentation.components.SheetContent
 import com.tahbeer.app.ui.theme.AppTheme
@@ -56,73 +60,102 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    viewModel: ThemeViewModel = koinViewModel(),
+    viewModel: SettingsViewModel = koinViewModel(),
     receivedUri: Uri? = null,
 ) {
+    val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     var currentBottomSheet: BottomSheetType? by remember { mutableStateOf(null) }
     var pickedFile by remember { mutableStateOf(receivedUri) }
 
-    Scaffold(bottomBar = {
-        BottomAppBar(
-            actions = {
-                var menuExpanded by remember { mutableStateOf(false) }
+    ObserveAsEvents(events = viewModel.events) {
+        when (it) {
+            SettingsEvent.ModelDeleteSuccess -> {
+                Toast.makeText(context, R.string.settings_model_delete_success, Toast.LENGTH_SHORT)
+                    .show()
+            }
 
-                val onMenuItemClick: (BottomSheetType) -> Unit = { type ->
-                    currentBottomSheet = type
-                    menuExpanded = false
-                }
+            SettingsEvent.ModelDownloadSuccess -> {
+                Toast.makeText(
+                    context,
+                    R.string.settings_model_download_success,
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
 
-                IconButton(onClick = { menuExpanded = !menuExpanded }) {
-                    IconWithTooltip(
-                        icon = Icons.Filled.MoreVert,
-                        text = stringResource(R.string.more_options),
-                    )
+            is SettingsEvent.ModelDownloadError -> {
+                val messageResId = when (it.error) {
+                    ModelError.NETWORK_ERROR -> R.string.settings_model_error_network
+                    ModelError.DOWNLOAD_FAILED -> R.string.settings_model_error_download_failed
+                    ModelError.INSUFFICIENT_SPACE -> R.string.settings_model_error_insufficient_space
+                    ModelError.UNKNOWN_ERROR -> R.string.settings_model_error_unknown
                 }
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false },
-                ) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.settings_menu_item)) },
-                        onClick = { onMenuItemClick(BottomSheetType.SETTINGS) },
-                        leadingIcon = { Icon(Icons.Filled.Settings, null) }
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.about_menu_item)) },
-                        onClick = { onMenuItemClick(BottomSheetType.ABOUT) },
-                        leadingIcon = { Icon(Icons.Filled.Info, null) }
-                    )
-                }
-            },
+                Toast.makeText(context, messageResId, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
-            floatingActionButton = {
-                val launcher =
-                    rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {
-                        if (it != null) {
-                            pickedFile = it
-                        }
+    Scaffold(
+        bottomBar = {
+            BottomAppBar(
+                actions = {
+                    var menuExpanded by remember { mutableStateOf(false) }
+
+                    val onMenuItemClick: (BottomSheetType) -> Unit = { type ->
+                        currentBottomSheet = type
+                        menuExpanded = false
                     }
-                FloatingActionButton(
-                    onClick = {
-                        launcher.launch(
-                            arrayOf(
-                                *AUDIO_MIME_TYPES,
-                                *VIDEO_MIME_TYPES,
-                            )
+
+                    IconButton(onClick = { menuExpanded = !menuExpanded }) {
+                        IconWithTooltip(
+                            icon = Icons.Filled.MoreVert,
+                            text = stringResource(R.string.more_options),
                         )
                     }
-                ) {
-                    IconWithTooltip(
-                        icon = ImageVector.vectorResource(R.drawable.rounded_add),
-                        text = stringResource(R.string.add_transcript_fab),
-                        iconModifier = Modifier.size(28.dp),
-                    )
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.settings_menu_item)) },
+                            onClick = { onMenuItemClick(BottomSheetType.SETTINGS) },
+                            leadingIcon = { Icon(Icons.Filled.Settings, null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.about_menu_item)) },
+                            onClick = { onMenuItemClick(BottomSheetType.ABOUT) },
+                            leadingIcon = { Icon(Icons.Filled.Info, null) }
+                        )
+                    }
+                },
+
+                floatingActionButton = {
+                    val launcher =
+                        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {
+                            if (it != null) {
+                                pickedFile = it
+                            }
+                        }
+                    FloatingActionButton(
+                        onClick = {
+                            launcher.launch(
+                                arrayOf(
+                                    *AUDIO_MIME_TYPES,
+                                    *VIDEO_MIME_TYPES,
+                                )
+                            )
+                        }
+                    ) {
+                        IconWithTooltip(
+                            icon = ImageVector.vectorResource(R.drawable.rounded_add),
+                            text = stringResource(R.string.add_transcript_fab),
+                            iconModifier = Modifier.size(28.dp),
+                        )
+                    }
                 }
-            }
-        )
-    }) { innerPadding ->
+            )
+        }) { innerPadding ->
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,

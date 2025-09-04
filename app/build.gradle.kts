@@ -49,6 +49,16 @@ android {
 }
 
 dependencies {
+    // OkHttp
+    implementation(libs.okhttp)
+
+    // FFmpeg-kit
+    implementation(files("../app/libs/ffmpeg-kit-video.aar"))
+    implementation(libs.smart.exception.java)
+
+    // Vosk
+    implementation(libs.vosk.android)
+
     implementation(libs.bundles.koin)
 
     implementation(libs.androidx.core.ktx)

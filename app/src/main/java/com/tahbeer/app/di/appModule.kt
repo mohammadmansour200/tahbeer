@@ -1,8 +1,10 @@
 package com.tahbeer.app.di
 
+import com.tahbeer.app.home.data.model.VoskModelManager
 import com.tahbeer.app.home.data.preferences.LocalThemePreferencesDataSource
 import com.tahbeer.app.home.domain.ThemePreferences
-import com.tahbeer.app.home.presentation.ThemeViewModel
+import com.tahbeer.app.home.domain.model.ModelManager
+import com.tahbeer.app.home.presentation.SettingsViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -12,9 +14,14 @@ val appModule = module {
         LocalThemePreferencesDataSource(context = androidContext())
     }
 
+    single<ModelManager> {
+        VoskModelManager(context = androidContext())
+    }
+
     viewModel {
-        ThemeViewModel(
-            themePreferences = get()
+        SettingsViewModel(
+            themePreferences = get(),
+            voskModelManager = get()
         )
     }
 }

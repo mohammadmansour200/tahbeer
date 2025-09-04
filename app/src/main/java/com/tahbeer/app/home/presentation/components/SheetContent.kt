@@ -1,8 +1,8 @@
 package com.tahbeer.app.home.presentation.components
 
 import androidx.compose.runtime.Composable
-import com.tahbeer.app.home.presentation.ThemeAction
-import com.tahbeer.app.home.presentation.ThemeState
+import com.tahbeer.app.home.presentation.SettingsAction
+import com.tahbeer.app.home.presentation.SettingsState
 
 enum class BottomSheetType {
     ABOUT, SETTINGS
@@ -11,8 +11,8 @@ enum class BottomSheetType {
 @Composable
 fun SheetContent(
     bottomSheetType: BottomSheetType,
-    settingsState: ThemeState,
-    settingsOnAction: (ThemeAction) -> Unit,
+    settingsState: SettingsState,
+    settingsOnAction: (SettingsAction) -> Unit,
 ) {
     when (bottomSheetType) {
         BottomSheetType.ABOUT -> AboutBottomSheet()
