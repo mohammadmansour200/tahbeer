@@ -1,14 +1,14 @@
-package com.tahbeer.app.home.presentation
+package com.tahbeer.app.home.presentation.settings
 
 import android.util.Log
 import androidx.compose.ui.text.intl.Locale
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tahbeer.app.home.domain.ThemePreferences
-import com.tahbeer.app.home.domain.model.ModelError
-import com.tahbeer.app.home.domain.model.ModelException
-import com.tahbeer.app.home.domain.model.ModelManager
 import com.tahbeer.app.home.domain.model.VoskModelList.models
+import com.tahbeer.app.home.domain.settings.ModelError
+import com.tahbeer.app.home.domain.settings.ModelException
+import com.tahbeer.app.home.domain.settings.ModelManager
+import com.tahbeer.app.home.domain.settings.ThemePreferences
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

@@ -1,6 +1,6 @@
-package com.tahbeer.app.home.presentation
+package com.tahbeer.app.home.presentation.settings
 
-import com.tahbeer.app.home.domain.model.ModelError
+import com.tahbeer.app.home.domain.settings.ModelError
 
 sealed interface SettingsEvent {
     object ModelDownloadSuccess : SettingsEvent

@@ -1,4 +1,4 @@
-package com.tahbeer.app.home.presentation
+package com.tahbeer.app.home.presentation.settings
 
 sealed interface SettingsAction {
     data class OnThemeChange(val theme: String) : SettingsAction

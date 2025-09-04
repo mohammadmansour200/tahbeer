@@ -1,12 +1,11 @@
-package com.tahbeer.app.home.data.model
+package com.tahbeer.app.home.data.settings
 
 import android.content.Context
-import com.tahbeer.app.home.domain.model.ModelError
-import com.tahbeer.app.home.domain.model.ModelException
-import com.tahbeer.app.home.domain.model.ModelManager
 import com.tahbeer.app.home.domain.model.VoskModel
-import com.tahbeer.app.home.domain.model.VoskModelList.getModelsByLanguage
-import com.tahbeer.app.home.domain.model.VoskModelList.models
+import com.tahbeer.app.home.domain.model.VoskModelList
+import com.tahbeer.app.home.domain.settings.ModelError
+import com.tahbeer.app.home.domain.settings.ModelException
+import com.tahbeer.app.home.domain.settings.ModelManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -26,7 +25,7 @@ class VoskModelManager(context: Context) : ModelManager {
         val filesDirContent = modelDir.listFiles().map {
             it.name
         }
-        val voskModels = models.toMutableList().map {
+        val voskModels = VoskModelList.models.toMutableList().map {
             if (filesDirContent.contains(it.lang))
                 it.copy(isDownloaded = true)
             else it
@@ -48,7 +47,7 @@ class VoskModelManager(context: Context) : ModelManager {
         onProgress: (progress: Float) -> Unit
     ): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val model = getModelsByLanguage(lang)[0]
+            val model = VoskModelList.getModelsByLanguage(lang)[0]
             val zipFile = File(modelDir, "${model.lang}-model.zip")
 
             if (!hasEnoughSpace(model.size)) {

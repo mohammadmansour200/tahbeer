@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tahbeer.app.core.navigation.AdaptiveCoinListDetailPane
-import com.tahbeer.app.home.presentation.SettingsViewModel
+import com.tahbeer.app.home.presentation.settings.SettingsViewModel
 import com.tahbeer.app.ui.theme.AppTheme
 import com.tahbeer.app.ui.theme.isDarkMode
 import org.koin.androidx.compose.koinViewModel

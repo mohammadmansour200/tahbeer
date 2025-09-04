@@ -1,8 +1,8 @@
-package com.tahbeer.app.home.data.preferences
+package com.tahbeer.app.home.data.settings
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.tahbeer.app.home.domain.ThemePreferences
+import com.tahbeer.app.home.domain.settings.ThemePreferences
 
 class LocalThemePreferencesDataSource(context: Context) : ThemePreferences {
     private val sharedPreferences: SharedPreferences =

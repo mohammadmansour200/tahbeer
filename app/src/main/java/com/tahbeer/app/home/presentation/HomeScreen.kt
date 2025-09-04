@@ -50,9 +50,11 @@ import com.tahbeer.app.core.domain.CoreConstants.AUDIO_MIME_TYPES
 import com.tahbeer.app.core.domain.CoreConstants.VIDEO_MIME_TYPES
 import com.tahbeer.app.core.presentation.components.IconWithTooltip
 import com.tahbeer.app.core.presentation.utils.ObserveAsEvents
-import com.tahbeer.app.home.domain.model.ModelError
+import com.tahbeer.app.home.domain.settings.ModelError
 import com.tahbeer.app.home.presentation.components.BottomSheetType
 import com.tahbeer.app.home.presentation.components.SheetContent
+import com.tahbeer.app.home.presentation.settings.SettingsEvent
+import com.tahbeer.app.home.presentation.settings.SettingsViewModel
 import com.tahbeer.app.ui.theme.AppTheme
 import org.koin.androidx.compose.koinViewModel
 

@@ -1,4 +1,4 @@
-package com.tahbeer.app.home.presentation.components
+package com.tahbeer.app.home.presentation.settings
 
 import android.os.Build
 import android.text.format.Formatter
@@ -64,8 +64,6 @@ import androidx.core.os.LocaleListCompat
 import com.tahbeer.app.R
 import com.tahbeer.app.core.presentation.components.IconWithTooltip
 import com.tahbeer.app.core.presentation.utils.findActivity
-import com.tahbeer.app.home.presentation.SettingsAction
-import com.tahbeer.app.home.presentation.SettingsState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

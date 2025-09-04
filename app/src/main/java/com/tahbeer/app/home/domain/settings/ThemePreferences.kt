@@ -1,4 +1,4 @@
-package com.tahbeer.app.home.domain
+package com.tahbeer.app.home.domain.settings
 
 interface ThemePreferences {
     fun setTheme(

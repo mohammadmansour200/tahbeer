@@ -1,4 +1,6 @@
-package com.tahbeer.app.home.domain.model
+package com.tahbeer.app.home.domain.settings
+
+import com.tahbeer.app.home.domain.model.VoskModel
 
 interface ModelManager {
     suspend fun downloadModel(

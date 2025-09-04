@@ -1,8 +1,9 @@
 package com.tahbeer.app.home.presentation.components
 
 import androidx.compose.runtime.Composable
-import com.tahbeer.app.home.presentation.SettingsAction
-import com.tahbeer.app.home.presentation.SettingsState
+import com.tahbeer.app.home.presentation.settings.SettingsAction
+import com.tahbeer.app.home.presentation.settings.SettingsBottomSheet
+import com.tahbeer.app.home.presentation.settings.SettingsState
 
 enum class BottomSheetType {
     ABOUT, SETTINGS
