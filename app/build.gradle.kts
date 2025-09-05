@@ -56,9 +56,10 @@ dependencies {
     implementation(files("../app/libs/ffmpeg-kit-video.aar"))
     implementation(libs.smart.exception.java)
 
-    // Vosk
-    implementation(libs.vosk.android)
+    // Whisper.cpp
+    implementation(project(":lib"))
 
+    // Koin
     implementation(libs.bundles.koin)
 
     implementation(libs.androidx.core.ktx)

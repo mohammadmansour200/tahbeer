@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Tahbeer"
 include(":app")
- 
+include(":lib")
