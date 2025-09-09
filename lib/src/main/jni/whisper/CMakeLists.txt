@@ -3,21 +3,19 @@ cmake_minimum_required(VERSION 3.10)
 project(whisper.cpp)
 
 set(CMAKE_CXX_STANDARD 17)
-set(WHISPER_LIB_DIR "/home/mohammad/Documents/Programming/whisper.cpp")
+set(WHISPER_LIB_DIR "${CMAKE_SOURCE_DIR}/vendor")
+set(GGML_HOME "${CMAKE_SOURCE_DIR}/vendor/ggml")
 
 # Get whisper.cpp version
 file(READ "${WHISPER_LIB_DIR}/CMakeLists.txt" MAIN_CMAKE_CONTENT)
 string(REGEX MATCH "project\\(\"whisper\\.cpp\" VERSION ([0-9]+\\.[0-9]+\\.[0-9]+)\\)" VERSION_MATCH "${MAIN_CMAKE_CONTENT}")
 if (CMAKE_MATCH_1)
-    set(WHISPER_VERSION ${CMAKE_MATCH_1} PARENT_SCOPE)
+    set(WHISPER_VERSION ${CMAKE_MATCH_1})
 else ()
-    set(WHISPER_VERSION "unknown" PARENT_SCOPE)
+    set(WHISPER_VERSION "unknown")
 endif ()
 
 message(STATUS " Whisper version: ${WHISPER_VERSION}")
-
-# Path to external GGML, otherwise uses the copy in whisper.cpp.
-option(GGML_HOME "whisper: Path to external GGML source" OFF)
 
 set(
         SOURCE_FILES
