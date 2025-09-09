@@ -1,6 +1,5 @@
 package com.whispercpp.whisper
 
-import android.content.res.AssetManager
 import android.os.Build
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
@@ -11,6 +10,12 @@ import java.io.File
 import java.util.concurrent.Executors
 
 private const val LOG_TAG = "LibWhisper"
+
+data class SubtitleEntry(
+    val startTime: Long,
+    val endTime: Long,
+    val text: String
+)
 
 interface WhisperProgressCallback {
     fun onProgress(progress: Int)
@@ -26,29 +31,22 @@ class WhisperContext private constructor(private var ptr: Long) {
         data: FloatArray,
         language: String,
         onProgressCallback: WhisperProgressCallback? = null
-    ): String = withContext(scope.coroutineContext) {
+    ): List<SubtitleEntry> = withContext(scope.coroutineContext) {
         require(ptr != 0L)
         val numThreads = WhisperCpuConfig.preferredThreadCount
         Log.d(LOG_TAG, "Selecting $numThreads threads")
         WhisperLib.fullTranscribe(ptr, numThreads, data, language, onProgressCallback)
         val textCount = WhisperLib.getTextSegmentCount(ptr)
-        return@withContext buildString {
-            for (i in 0 until textCount) {
-                val textTimestamp = "[${toTimestamp(WhisperLib.getTextSegmentT0(ptr, i))} --> ${
-                    toTimestamp(WhisperLib.getTextSegmentT1(ptr, i))
-                }]"
-                val textSegment = WhisperLib.getTextSegment(ptr, i)
-                append("$textTimestamp: $textSegment\n")
-            }
+
+        val subtitles = mutableListOf<SubtitleEntry>()
+        for (i in 0 until textCount) {
+            val startTime = WhisperLib.getTextSegmentT0(ptr, i)
+            val endTime = WhisperLib.getTextSegmentT1(ptr, i)
+
+            val textSegment = WhisperLib.getTextSegment(ptr, i)
+            subtitles += SubtitleEntry(startTime, endTime, textSegment)
         }
-    }
-
-    suspend fun benchMemory(nthreads: Int): String = withContext(scope.coroutineContext) {
-        return@withContext WhisperLib.benchMemcpy(nthreads)
-    }
-
-    suspend fun benchGgmlMulMat(nthreads: Int): String = withContext(scope.coroutineContext) {
-        return@withContext WhisperLib.benchGgmlMulMat(nthreads)
+        return@withContext subtitles
     }
 
     suspend fun release() = withContext(scope.coroutineContext) {
@@ -71,19 +69,6 @@ class WhisperContext private constructor(private var ptr: Long) {
                 throw java.lang.RuntimeException("Couldn't create context with path $filePath")
             }
             return WhisperContext(ptr)
-        }
-
-        fun createContextFromAsset(assetManager: AssetManager, assetPath: String): WhisperContext {
-            val ptr = WhisperLib.initContextFromAsset(assetManager, assetPath)
-
-            if (ptr == 0L) {
-                throw java.lang.RuntimeException("Couldn't create context from asset $assetPath")
-            }
-            return WhisperContext(ptr)
-        }
-
-        fun getSystemInfo(): String {
-            return WhisperLib.getSystemInfo()
         }
     }
 }
@@ -129,7 +114,6 @@ private class WhisperLib {
         }
 
         // JNI methods
-        external fun initContextFromAsset(assetManager: AssetManager, assetPath: String): Long
         external fun initContext(modelPath: String): Long
         external fun freeContext(contextPtr: Long)
 
@@ -145,25 +129,7 @@ private class WhisperLib {
         external fun getTextSegment(contextPtr: Long, index: Int): String
         external fun getTextSegmentT0(contextPtr: Long, index: Int): Long
         external fun getTextSegmentT1(contextPtr: Long, index: Int): Long
-        external fun getSystemInfo(): String
-        external fun benchMemcpy(nthread: Int): String
-        external fun benchGgmlMulMat(nthread: Int): String
     }
-}
-
-//  500 -> 00:05.000
-// 6000 -> 01:00.000
-private fun toTimestamp(t: Long, comma: Boolean = false): String {
-    var msec = t * 10
-    val hr = msec / (1000 * 60 * 60)
-    msec -= hr * (1000 * 60 * 60)
-    val min = msec / (1000 * 60)
-    msec -= min * (1000 * 60)
-    val sec = msec / 1000
-    msec -= sec * 1000
-
-    val delimiter = if (comma) "," else "."
-    return String.format("%02d:%02d:%02d%s%03d", hr, min, sec, delimiter, msec)
 }
 
 private fun isArmEabiV7a(): Boolean {
