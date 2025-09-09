@@ -24,7 +24,7 @@ static inline int max(int a, int b) {
 
 struct input_stream_context {
     size_t offset;
-    JNIEnv * env;
+    JNIEnv *env;
     jobject thiz;
     jobject input_stream;
 
@@ -32,21 +32,23 @@ struct input_stream_context {
     jmethodID mid_read;
 };
 
-size_t inputStreamRead(void * ctx, void * output, size_t read_size) {
-    struct input_stream_context* is = (struct input_stream_context*)ctx;
+size_t inputStreamRead(void *ctx, void *output, size_t read_size) {
+    struct input_stream_context *is = (struct input_stream_context *) ctx;
 
     jint avail_size = (*is->env)->CallIntMethod(is->env, is->input_stream, is->mid_available);
-    jint size_to_copy = read_size < avail_size ? (jint)read_size : avail_size;
+    jint size_to_copy = read_size < avail_size ? (jint) read_size : avail_size;
 
     jbyteArray byte_array = (*is->env)->NewByteArray(is->env, size_to_copy);
 
-    jint n_read = (*is->env)->CallIntMethod(is->env, is->input_stream, is->mid_read, byte_array, 0, size_to_copy);
+    jint n_read = (*is->env)->CallIntMethod(is->env, is->input_stream, is->mid_read, byte_array, 0,
+                                            size_to_copy);
 
     if (size_to_copy != read_size || size_to_copy != n_read) {
-        LOGI("Insufficient Read: Req=%zu, ToCopy=%d, Available=%d", read_size, size_to_copy, n_read);
+        LOGI("Insufficient Read: Req=%zu, ToCopy=%d, Available=%d", read_size, size_to_copy,
+             n_read);
     }
 
-    jbyte* byte_array_elements = (*is->env)->GetByteArrayElements(is->env, byte_array, NULL);
+    jbyte *byte_array_elements = (*is->env)->GetByteArrayElements(is->env, byte_array, NULL);
     memcpy(output, byte_array_elements, size_to_copy);
     (*is->env)->ReleaseByteArrayElements(is->env, byte_array, byte_array_elements, JNI_ABORT);
 
@@ -56,13 +58,15 @@ size_t inputStreamRead(void * ctx, void * output, size_t read_size) {
 
     return size_to_copy;
 }
-bool inputStreamEof(void * ctx) {
-    struct input_stream_context* is = (struct input_stream_context*)ctx;
+
+bool inputStreamEof(void *ctx) {
+    struct input_stream_context *is = (struct input_stream_context *) ctx;
 
     jint result = (*is->env)->CallIntMethod(is->env, is->input_stream, is->mid_available);
     return result <= 0;
 }
-void inputStreamClose(void * ctx) {
+
+void inputStreamClose(void *ctx) {
 
 }
 
@@ -147,7 +151,8 @@ Java_com_whispercpp_whisper_WhisperLib_00024Companion_initContext(
     UNUSED(thiz);
     struct whisper_context *context = NULL;
     const char *model_path_chars = (*env)->GetStringUTFChars(env, model_path_str, NULL);
-    context = whisper_init_from_file_with_params(model_path_chars, whisper_context_default_params());
+    context = whisper_init_from_file_with_params(model_path_chars,
+                                                 whisper_context_default_params());
     (*env)->ReleaseStringUTFChars(env, model_path_str, model_path_chars);
     return (jlong) context;
 }
@@ -161,26 +166,61 @@ Java_com_whispercpp_whisper_WhisperLib_00024Companion_freeContext(
     whisper_free(context);
 }
 
+// Add this callback interface definition
+typedef struct {
+    JNIEnv *env;
+    jobject callback_obj;
+    jmethodID callback_method;
+} progress_callback_data;
+
+// C callback function that bridges to Java
+void
+progress_callback_bridge(struct whisper_context *ctx, struct whisper_state *state, int progress,
+                         void *user_data) {
+    progress_callback_data *data = (progress_callback_data *) user_data;
+    if (data && data->env && data->callback_obj && data->callback_method) {
+        (*data->env)->CallVoidMethod(data->env, data->callback_obj, data->callback_method,
+                                     progress);
+    }
+}
+
 JNIEXPORT void JNICALL
 Java_com_whispercpp_whisper_WhisperLib_00024Companion_fullTranscribe(
-        JNIEnv *env, jobject thiz, jlong context_ptr, jint num_threads, jfloatArray audio_data) {
+        JNIEnv *env, jobject thiz, jlong context_ptr, jint num_threads, jfloatArray audio_data,
+        jstring language, jobject progress_callback) {
     UNUSED(thiz);
     struct whisper_context *context = (struct whisper_context *) context_ptr;
     jfloat *audio_data_arr = (*env)->GetFloatArrayElements(env, audio_data, NULL);
     const jsize audio_data_length = (*env)->GetArrayLength(env, audio_data);
+    const char *language_chars = (*env)->GetStringUTFChars(env, language, NULL);
 
-    // The below adapted from the Objective-C iOS sample
+    progress_callback_data callback_data = {0};
+    if (progress_callback != NULL) {
+        callback_data.env = env;
+        callback_data.callback_obj = progress_callback;
+
+        jclass callback_class = (*env)->GetObjectClass(env, progress_callback);
+        callback_data.callback_method = (*env)->GetMethodID(env, callback_class, "onProgress",
+                                                            "(I)V");
+    }
+
     struct whisper_full_params params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
-    params.print_realtime = true;
+    params.print_realtime = false;
     params.print_progress = false;
     params.print_timestamps = true;
     params.print_special = false;
     params.translate = false;
-    params.language = "en";
+    params.language = language_chars;
     params.n_threads = num_threads;
     params.offset_ms = 0;
     params.no_context = true;
     params.single_segment = false;
+
+    // Set up the progress callback
+    if (progress_callback != NULL) {
+        params.progress_callback = progress_callback_bridge;
+        params.progress_callback_user_data = &callback_data;
+    }
 
     whisper_reset_timings(context);
 
@@ -190,6 +230,8 @@ Java_com_whispercpp_whisper_WhisperLib_00024Companion_fullTranscribe(
     } else {
         whisper_print_timings(context);
     }
+
+    (*env)->ReleaseStringUTFChars(env, language, language_chars);
     (*env)->ReleaseFloatArrayElements(env, audio_data, audio_data_arr, JNI_ABORT);
 }
 
@@ -240,7 +282,7 @@ Java_com_whispercpp_whisper_WhisperLib_00024Companion_getSystemInfo(
 
 JNIEXPORT jstring JNICALL
 Java_com_whispercpp_whisper_WhisperLib_00024Companion_benchMemcpy(JNIEnv *env, jobject thiz,
-                                                                      jint n_threads) {
+                                                                  jint n_threads) {
     UNUSED(thiz);
     const char *bench_ggml_memcpy = whisper_bench_memcpy_str(n_threads);
     jstring string = (*env)->NewStringUTF(env, bench_ggml_memcpy);
@@ -249,7 +291,7 @@ Java_com_whispercpp_whisper_WhisperLib_00024Companion_benchMemcpy(JNIEnv *env, j
 
 JNIEXPORT jstring JNICALL
 Java_com_whispercpp_whisper_WhisperLib_00024Companion_benchGgmlMulMat(JNIEnv *env, jobject thiz,
-                                                                          jint n_threads) {
+                                                                      jint n_threads) {
     UNUSED(thiz);
     const char *bench_ggml_mul_mat = whisper_bench_ggml_mul_mat_str(n_threads);
     jstring string = (*env)->NewStringUTF(env, bench_ggml_mul_mat);

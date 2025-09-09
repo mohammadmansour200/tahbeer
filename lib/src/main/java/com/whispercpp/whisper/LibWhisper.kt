@@ -3,12 +3,18 @@ package com.whispercpp.whisper
 import android.content.res.AssetManager
 import android.os.Build
 import android.util.Log
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.InputStream
 import java.util.concurrent.Executors
 
 private const val LOG_TAG = "LibWhisper"
+
+interface WhisperProgressCallback {
+    fun onProgress(progress: Int)
+}
 
 class WhisperContext private constructor(private var ptr: Long) {
     // Meet Whisper C++ constraint: Don't access from more than one thread at a time.
@@ -16,21 +22,23 @@ class WhisperContext private constructor(private var ptr: Long) {
         Executors.newSingleThreadExecutor().asCoroutineDispatcher()
     )
 
-    suspend fun transcribeData(data: FloatArray, printTimestamp: Boolean = true): String = withContext(scope.coroutineContext) {
+    suspend fun transcribeData(
+        data: FloatArray,
+        language: String,
+        onProgressCallback: WhisperProgressCallback? = null
+    ): String = withContext(scope.coroutineContext) {
         require(ptr != 0L)
         val numThreads = WhisperCpuConfig.preferredThreadCount
         Log.d(LOG_TAG, "Selecting $numThreads threads")
-        WhisperLib.fullTranscribe(ptr, numThreads, data)
+        WhisperLib.fullTranscribe(ptr, numThreads, data, language, onProgressCallback)
         val textCount = WhisperLib.getTextSegmentCount(ptr)
         return@withContext buildString {
             for (i in 0 until textCount) {
-                if (printTimestamp) {
-                    val textTimestamp = "[${toTimestamp(WhisperLib.getTextSegmentT0(ptr, i))} --> ${toTimestamp(WhisperLib.getTextSegmentT1(ptr, i))}]"
-                    val textSegment = WhisperLib.getTextSegment(ptr, i)
-                    append("$textTimestamp: $textSegment\n")
-                } else {
-                    append(WhisperLib.getTextSegment(ptr, i))
-                }
+                val textTimestamp = "[${toTimestamp(WhisperLib.getTextSegmentT0(ptr, i))} --> ${
+                    toTimestamp(WhisperLib.getTextSegmentT1(ptr, i))
+                }]"
+                val textSegment = WhisperLib.getTextSegment(ptr, i)
+                append("$textTimestamp: $textSegment\n")
             }
         }
     }
@@ -61,15 +69,6 @@ class WhisperContext private constructor(private var ptr: Long) {
             val ptr = WhisperLib.initContext(filePath)
             if (ptr == 0L) {
                 throw java.lang.RuntimeException("Couldn't create context with path $filePath")
-            }
-            return WhisperContext(ptr)
-        }
-
-        fun createContextFromInputStream(stream: InputStream): WhisperContext {
-            val ptr = WhisperLib.initContextFromInputStream(stream)
-
-            if (ptr == 0L) {
-                throw java.lang.RuntimeException("Couldn't create context from input stream")
             }
             return WhisperContext(ptr)
         }
@@ -130,11 +129,18 @@ private class WhisperLib {
         }
 
         // JNI methods
-        external fun initContextFromInputStream(inputStream: InputStream): Long
         external fun initContextFromAsset(assetManager: AssetManager, assetPath: String): Long
         external fun initContext(modelPath: String): Long
         external fun freeContext(contextPtr: Long)
-        external fun fullTranscribe(contextPtr: Long, numThreads: Int, audioData: FloatArray)
+
+        external fun fullTranscribe(
+            contextPtr: Long,
+            numThreads: Int,
+            audioData: FloatArray,
+            language: String,
+            progressCallback: WhisperProgressCallback?
+        )
+
         external fun getTextSegmentCount(contextPtr: Long): Int
         external fun getTextSegment(contextPtr: Long, index: Int): String
         external fun getTextSegmentT0(contextPtr: Long, index: Int): Long
