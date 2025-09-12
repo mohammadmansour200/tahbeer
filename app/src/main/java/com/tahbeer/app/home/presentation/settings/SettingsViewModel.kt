@@ -1,12 +1,10 @@
 package com.tahbeer.app.home.presentation.settings
 
 import android.util.Log
-import androidx.compose.ui.text.intl.Locale
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tahbeer.app.home.domain.model.VoskModelList.models
-import com.tahbeer.app.home.domain.settings.ModelError
-import com.tahbeer.app.home.domain.settings.ModelException
+import com.tahbeer.app.home.domain.settings.DownloadError
+import com.tahbeer.app.home.domain.settings.ModelDownloadException
 import com.tahbeer.app.home.domain.settings.ModelManager
 import com.tahbeer.app.home.domain.settings.ThemePreferences
 import kotlinx.coroutines.channels.Channel
@@ -18,7 +16,7 @@ import kotlinx.coroutines.launch
 
 class SettingsViewModel(
     private val themePreferences: ThemePreferences,
-    private val voskModelManager: ModelManager
+    private val whisperModelManager: ModelManager
 ) : ViewModel() {
     private val _state = MutableStateFlow(SettingsState())
     val state: StateFlow<SettingsState> = _state
@@ -30,7 +28,7 @@ class SettingsViewModel(
         viewModelScope.launch {
             _state.update {
                 it.copy(
-                    voskModels = voskModelManager.loadAvailableModels()
+                    whisperModels = whisperModelManager.loadAvailableModels()
                 )
             }
             loadThemePrefs()
@@ -49,79 +47,53 @@ class SettingsViewModel(
                 _state.update { it.copy(theme = action.theme) }
             }
 
-            is SettingsAction.OnVoskModelsFilter -> {
-                if (action.query.isBlank()) {
-                    _state.update { it.copy(voskModels = models) }
-                } else {
-                    _state.update {
-                        it.copy(voskModels = models.filter { model ->
-                            val locale = Locale(model.lang).platformLocale
-                            val name =
-                                "${locale.displayLanguage} ${locale.displayCountry} ${locale.language} ${locale.country}"
-                            name.contains(action.query, ignoreCase = true)
-                        })
-                    }
-                }
-            }
 
-            is SettingsAction.OnVoskModelDownload -> {
+            is SettingsAction.OnWhisperModelDownload -> {
                 viewModelScope.launch {
                     val modelIndex =
-                        _state.value.voskModels.indexOfFirst { it.lang == action.lang }
+                        _state.value.whisperModels.indexOfFirst { it.type == action.type }
+
                     try {
-                        val updatedList = _state.value.voskModels.toMutableList().apply {
+                        val updatedList = _state.value.whisperModels.toMutableList().apply {
                             this[modelIndex] =
                                 this[modelIndex].copy(downloadingProgress = 0f)
                         }
                         _state.update {
-                            it.copy(voskModels = updatedList)
+                            it.copy(whisperModels = updatedList)
                         }
-                        voskModelManager.downloadModel(
-                            lang = action.lang
+
+                        whisperModelManager.downloadModel(
+                            type = action.type
                         ) { progress ->
-                            val updatedList = _state.value.voskModels.toMutableList().apply {
+                            // Update progress state
+                            val updatedList = _state.value.whisperModels.toMutableList().apply {
                                 this[modelIndex] =
                                     this[modelIndex].copy(downloadingProgress = progress)
                             }
                             _state.update {
-                                it.copy(voskModels = updatedList)
+                                it.copy(whisperModels = updatedList)
                             }
                         }.fold(
                             onSuccess = {
-                                val updatedList = _state.value.voskModels.toMutableList().apply {
-                                    this[modelIndex] =
-                                        this[modelIndex].copy(
-                                            isDownloaded = true,
-                                            downloadingProgress = null
-                                        )
-                                }
-                                _state.update {
-                                    it.copy(voskModels = updatedList)
-                                }
                                 _events.send(SettingsEvent.ModelDownloadSuccess)
                             },
                             onFailure = { throwable ->
-                                val updatedList = _state.value.voskModels.toMutableList().apply {
-                                    this[modelIndex] =
-                                        this[modelIndex].copy(
-                                            isDownloaded = false,
-                                            downloadingProgress = null
-                                        )
-                                }
-                                _state.update {
-                                    it.copy(voskModels = updatedList)
-                                }
-                                when (val modelException = throwable as? ModelException) {
+                                when (val modelDownloadException =
+                                    throwable as? ModelDownloadException) {
                                     null -> {
                                         Log.e("Download", "Unknown error", throwable)
-                                        _events.send(SettingsEvent.ModelDownloadError(ModelError.UNKNOWN_ERROR))
+                                        _events.send(
+                                            SettingsEvent.ModelDownloadError(
+                                                DownloadError.DOWNLOAD_FAILED
+                                            )
+                                        )
                                     }
 
                                     else -> {
-                                        Log.e("Download", modelException.message, throwable)
+                                        Log.e("Download", modelDownloadException.message, throwable)
                                         _events.send(
                                             SettingsEvent.ModelDownloadError(
-                                                modelException.modelError
+                                                modelDownloadException.downloadError
                                             )
                                         )
                                     }
@@ -129,37 +101,37 @@ class SettingsViewModel(
                             })
 
                     } catch (e: Throwable) {
-                        val updatedList = _state.value.voskModels.toMutableList().apply {
+                        Log.e("Download", "Unknown error", e)
+                        _events.send(SettingsEvent.ModelDownloadError(DownloadError.DOWNLOAD_FAILED))
+                    } finally {
+                        val updatedList = _state.value.whisperModels.toMutableList().apply {
                             this[modelIndex] =
                                 this[modelIndex].copy(
-                                    isDownloaded = true,
                                     downloadingProgress = null
                                 )
                         }
                         _state.update {
-                            it.copy(voskModels = updatedList)
+                            it.copy(whisperModels = updatedList)
                         }
-                        Log.e("Download", "Unknown error", e)
-                        _events.send(SettingsEvent.ModelDownloadError(ModelError.UNKNOWN_ERROR))
                     }
                 }
             }
 
-            is SettingsAction.OnVoskModelDelete -> {
+            is SettingsAction.OnWhisperModelDelete -> {
                 viewModelScope.launch {
                     val modelIndex =
-                        _state.value.voskModels.indexOfFirst { it.lang == action.lang }
-                    val updatedList = _state.value.voskModels.toMutableList().apply {
+                        _state.value.whisperModels.indexOfFirst { it.type == action.type }
+                    val updatedList = _state.value.whisperModels.toMutableList().apply {
                         this[modelIndex] =
                             this[modelIndex].copy(
                                 isDownloaded = false,
                             )
                     }
                     _state.update {
-                        it.copy(voskModels = updatedList)
+                        it.copy(whisperModels = updatedList)
                     }
 
-                    voskModelManager.deleteModel(action.lang)
+                    whisperModelManager.deleteModel(action.type)
                     _events.send(SettingsEvent.ModelDeleteSuccess)
                 }
             }

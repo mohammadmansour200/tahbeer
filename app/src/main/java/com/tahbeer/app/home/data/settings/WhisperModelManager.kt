@@ -1,0 +1,117 @@
+package com.tahbeer.app.home.data.settings
+
+import android.content.Context
+import com.tahbeer.app.home.domain.model.WhisperModel
+import com.tahbeer.app.home.domain.model.WhisperModelList
+import com.tahbeer.app.home.domain.settings.DownloadError
+import com.tahbeer.app.home.domain.settings.ModelDownloadException
+import com.tahbeer.app.home.domain.settings.ModelManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.File
+import java.io.IOException
+import java.util.concurrent.TimeUnit
+
+class WhisperModelManager(context: Context) : ModelManager {
+    private val appContext = context
+    private val modelDir = appContext.filesDir
+
+    override suspend fun loadAvailableModels(): List<WhisperModel> {
+        // Models are present in filesDir originally
+        val filesDirContent = modelDir.listFiles().map {
+            it.name
+        }
+        val whisperModels = WhisperModelList.models.toMutableList().map {
+            if (filesDirContent.contains("${it.type}.bin"))
+                it.copy(isDownloaded = true)
+            else it
+        }
+
+        return whisperModels
+    }
+
+
+    override suspend fun deleteModel(type: String) {
+        val path =
+            "${appContext.filesDir}/${type}.bin"
+        val model = File(path)
+        model.delete()
+    }
+
+    override suspend fun downloadModel(
+        type: String,
+        onProgress: (progress: Float) -> Unit
+    ): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val model = WhisperModelList.getModelsByLanguage(type)
+            val ggmlFile = File(modelDir, "${model.type}.bin")
+
+            // Check available space
+            if (!hasEnoughSpace(model.size)) {
+                return@withContext Result.failure(ModelDownloadException(DownloadError.INSUFFICIENT_SPACE))
+            }
+
+            val client = OkHttpClient.Builder()
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS)
+                .build()
+            val request = Request.Builder().url(model.url).build()
+
+            client.newCall(request).execute().use { response ->
+                when {
+                    !response.isSuccessful -> {
+                        val error = when (response.code) {
+                            in 400..599 -> DownloadError.DOWNLOAD_FAILED
+                            else -> DownloadError.NETWORK_ERROR
+                        }
+                        return@withContext Result.failure(ModelDownloadException(error))
+                    }
+                }
+
+                val totalBytes = model.size
+                response.body.let { body ->
+                    try {
+                        // Write body's bytestream to the ggml model
+                        ggmlFile.outputStream().use { fileOut ->
+                            val buffer = ByteArray(8192)
+                            var bytesDownloaded = 0L
+
+                            body.byteStream().use { input ->
+                                var bytesRead = input.read(buffer)
+                                while (bytesRead != -1) {
+                                    fileOut.write(buffer, 0, bytesRead)
+                                    bytesDownloaded += bytesRead
+                                    onProgress((bytesDownloaded.toDouble() / totalBytes).toFloat())
+                                    bytesRead = input.read(buffer)
+                                }
+                            }
+                        }
+                    } catch (e: IOException) {
+                        deleteModel(type)
+                        return@withContext Result.failure(
+                            ModelDownloadException(
+                                DownloadError.DOWNLOAD_FAILED,
+                                e
+                            )
+                        )
+                    }
+                }
+
+                Result.success(File(modelDir, model.type).absolutePath)
+            }
+        } catch (e: okio.IOException) {
+            deleteModel(type)
+            Result.failure(ModelDownloadException(DownloadError.NETWORK_ERROR, e))
+        } catch (e: Exception) {
+            deleteModel(type)
+            Result.failure(ModelDownloadException(DownloadError.DOWNLOAD_FAILED, e))
+        }
+    }
+
+    private fun hasEnoughSpace(requiredBytes: Long): Boolean {
+        val availableBytes = modelDir.freeSpace
+        return availableBytes > requiredBytes * 1.2
+    }
+}
