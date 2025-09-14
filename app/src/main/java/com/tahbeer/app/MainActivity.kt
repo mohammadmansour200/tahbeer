@@ -8,13 +8,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.tahbeer.app.core.navigation.AdaptiveCoinListDetailPane
+import com.tahbeer.app.core.navigation.AdaptiveListDetailPane
 import com.tahbeer.app.home.presentation.settings.SettingsViewModel
 import com.tahbeer.app.ui.theme.AppTheme
 import com.tahbeer.app.ui.theme.isDarkMode
@@ -40,9 +39,9 @@ class MainActivity : AppCompatActivity() {
                     darkTheme = isDarkMode(themeState.theme),
                     dynamicColor = themeState.dynamicColorsEnabled
                 ) {
-                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                        AdaptiveCoinListDetailPane(
-                            modifier = Modifier.padding(innerPadding), receivedUri = receivedUri
+                    Surface(modifier = Modifier.fillMaxSize()) {
+                        AdaptiveListDetailPane(
+                            receivedUri = receivedUri
                         )
                     }
                 }
