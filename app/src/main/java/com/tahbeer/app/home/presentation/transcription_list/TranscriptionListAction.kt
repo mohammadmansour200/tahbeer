@@ -10,5 +10,5 @@ sealed interface TranscriptionListAction {
     ) :
         TranscriptionListAction
 
-    data class OnTranscriptClick(val transcriptionId: String) : TranscriptionListAction
+    data class OnTranscriptClick(val transcriptionId: String?) : TranscriptionListAction
 }
