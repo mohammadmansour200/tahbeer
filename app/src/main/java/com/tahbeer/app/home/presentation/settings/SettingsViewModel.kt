@@ -75,6 +75,15 @@ class SettingsViewModel(
                             }
                         }.fold(
                             onSuccess = {
+                                val updatedList = _state.value.whisperModels.toMutableList().apply {
+                                    this[modelIndex] =
+                                        this[modelIndex].copy(
+                                            isDownloaded = true
+                                        )
+                                }
+                                _state.update {
+                                    it.copy(whisperModels = updatedList)
+                                }
                                 _events.send(SettingsEvent.ModelDownloadSuccess)
                             },
                             onFailure = { throwable ->
