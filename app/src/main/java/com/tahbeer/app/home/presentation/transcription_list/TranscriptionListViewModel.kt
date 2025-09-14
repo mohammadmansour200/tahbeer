@@ -6,13 +6,13 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tahbeer.app.core.domain.model.MediaType
+import com.tahbeer.app.core.domain.model.TranscriptionItem
+import com.tahbeer.app.core.domain.model.TranscriptionStatus
+import com.tahbeer.app.core.domain.model.toDomainModel
 import com.tahbeer.app.core.utils.fileName
 import com.tahbeer.app.core.utils.isAudio
 import com.tahbeer.app.core.utils.isVideo
 import com.tahbeer.app.home.domain.list.SpeechRecognition
-import com.tahbeer.app.home.domain.model.TranscriptionItem
-import com.tahbeer.app.home.domain.model.TranscriptionStatus
-import com.tahbeer.app.home.domain.model.toDomainModel
 import com.tahbeer.app.home.utils.SubtitleManager.parseSubtitle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

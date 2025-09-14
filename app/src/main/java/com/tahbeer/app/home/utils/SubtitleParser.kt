@@ -2,7 +2,7 @@ package com.tahbeer.app.home.utils
 
 import android.content.Context
 import android.net.Uri
-import com.tahbeer.app.home.domain.model.SubtitleEntry
+import com.tahbeer.app.core.domain.model.SubtitleEntry
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader

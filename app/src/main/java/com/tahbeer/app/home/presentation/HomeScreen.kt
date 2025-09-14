@@ -33,12 +33,12 @@ import com.tahbeer.app.core.domain.CoreConstants.AUDIO_MIME_TYPES
 import com.tahbeer.app.core.domain.CoreConstants.SUBTITLE_MIME_TYPES
 import com.tahbeer.app.core.domain.CoreConstants.VIDEO_MIME_TYPES
 import com.tahbeer.app.core.domain.model.MediaType
+import com.tahbeer.app.core.domain.model.SubtitleEntry
+import com.tahbeer.app.core.domain.model.TranscriptionItem
+import com.tahbeer.app.core.domain.model.TranscriptionStatus
 import com.tahbeer.app.core.presentation.components.AppSnackbarHost
 import com.tahbeer.app.core.presentation.components.IconWithTooltip
 import com.tahbeer.app.core.presentation.utils.ObserveAsEvents
-import com.tahbeer.app.home.domain.model.SubtitleEntry
-import com.tahbeer.app.home.domain.model.TranscriptionItem
-import com.tahbeer.app.home.domain.model.TranscriptionStatus
 import com.tahbeer.app.home.domain.settings.DownloadError
 import com.tahbeer.app.home.presentation.components.BottomSheetType
 import com.tahbeer.app.home.presentation.components.SheetContent
@@ -96,16 +96,16 @@ fun HomeScreen(
         bottomBar = {
             BottomAppBar(
                 actions = {
-                    IconButton(onClick = { currentBottomSheet = BottomSheetType.ABOUT }) {
-                        IconWithTooltip(
-                            text = stringResource(R.string.about_menu_item),
-                            icon = Icons.Filled.Info
-                        )
-                    }
                     IconButton(onClick = { currentBottomSheet = BottomSheetType.SETTINGS }) {
                         IconWithTooltip(
                             text = stringResource(R.string.settings_menu_item),
                             icon = Icons.Filled.Settings
+                        )
+                    }
+                    IconButton(onClick = { currentBottomSheet = BottomSheetType.ABOUT }) {
+                        IconWithTooltip(
+                            text = stringResource(R.string.about_menu_item),
+                            icon = Icons.Filled.Info
                         )
                     }
                 },
@@ -141,7 +141,7 @@ fun HomeScreen(
             modifier = modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            transcriptionItems = transcriptionListState.transcriptions,
+            transcriptionListState = transcriptionListState,
             onItemClick = {
                 transcriptionListOnAction(TranscriptionListAction.OnTranscriptClick(it))
             },

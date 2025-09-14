@@ -21,8 +21,8 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tahbeer.app.R
-import com.tahbeer.app.home.domain.model.TranscriptionItem
-import com.tahbeer.app.home.domain.model.TranscriptionStatus
+import com.tahbeer.app.core.domain.model.TranscriptionItem
+import com.tahbeer.app.core.domain.model.TranscriptionStatus
 
 @Composable
 fun TranscriptionListItem(
@@ -90,6 +90,9 @@ fun TranscriptionListItem(
                             }
                         }
                     }
+                },
+                trailingContent = {
+
                 }
             )
         }

@@ -1,7 +1,7 @@
 package com.tahbeer.app.home.presentation.transcription_list
 
 import androidx.compose.runtime.Immutable
-import com.tahbeer.app.home.domain.model.TranscriptionItem
+import com.tahbeer.app.core.domain.model.TranscriptionItem
 
 @Immutable
 data class TranscriptionListState(
