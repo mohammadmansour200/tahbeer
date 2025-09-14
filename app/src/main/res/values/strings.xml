@@ -1,5 +1,17 @@
 <resources>
     <string name="app_name">Tahbeer</string>
+
+    <string name="search_language">Search language</string>
+    <string name="close">Close</string>
+
+    <string name="download_model_title">Download one of these packs to start 👇</string>
+    <string name="select_a_model">Select a Language Pack</string>
+    <string name="language">Speech Language</string>
+    <string name="language_desc">What is the speech language of this file?</string>
+    <string name="select_lang_err">Please select a language</string>
+    <string name="start">Start!</string>
+    <string name="status_error_processing">Something went wrong while transcribing…</string>
+    <string name="status_processing">Transcribing…</string>
     <string name="more_options">More options</string>
     <string name="add_transcript_fab">Upload file</string>
     <string name="settings_menu_item">Settings</string>
@@ -24,10 +36,8 @@
     <string name="settings_theme_system_option">System default</string>
     <string name="settings_theme_light_option">Light</string>
     <string name="settings_theme_dark_option">Dark</string>
-    <string name="settings_action_toast">Reopen app to see changes</string>
     <string name="settings_dynamic_color_label">Match device colors</string>
     <string name="settings_lang_label">App Language</string>
-    <string name="settings_lang_alert_title">Choose language</string>
 
     <string name="about_email_title">Contact Me</string>
     <string name="about_email_description">Send feedback, report bugs, or ask questions via email</string>

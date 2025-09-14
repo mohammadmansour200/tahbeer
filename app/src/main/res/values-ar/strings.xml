@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">تحبير</string>
+
+    <string name="close">إغلاق</string>
+    <string name="search_language">ابحث عن اللغة</string>
+
+    <string name="download_model_title">حمل إحدى هذه الحزم للتفريغ 👇</string>
+    <string name="select_a_model">اختر الحزمة المناسبة</string>
+    <string name="language">لغة المادة</string>
+    <string name="language_desc">ما لغة الحديث في هذه المادة؟</string>
+    <string name="select_lang_err">رجاء اختر لغة المادة</string>
+    <string name="start">ابدأ!</string>
+    <string name="status_processing">دقائق من فضلك…</string>
+    <string name="status_error_processing">حدث خطأ غير معروف أثناء التفريغ…</string>
     <string name="more_options">المزيد من الخيارات</string>
     <string name="add_transcript_fab">رفع الملف</string>
     <string name="settings_menu_item">الإعدادات</string>
@@ -25,10 +37,8 @@
     <string name="settings_theme_system_option">الوضع الافتراضي للنظام</string>
     <string name="settings_theme_light_option">فاتح</string>
     <string name="settings_theme_dark_option">داكن</string>
-    <string name="settings_action_toast">أعد تشغيل التطبيق لتظهر التغييرات</string>
     <string name="settings_dynamic_color_label">مطابقة ألوان الجهاز</string>
     <string name="settings_lang_label">لغة التطبيق</string>
-    <string name="settings_lang_alert_title">المظهر</string>
 
     <string name="about_email_title">تواصل معي</string>
     <string name="about_email_description">أرسل الملاحظات أو تقارير الأعطال أو الاستفسارات عبر البريد الإلكتروني</string>

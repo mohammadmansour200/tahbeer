@@ -1,12 +1,9 @@
 package com.tahbeer.app.home.presentation.settings
 
 import android.os.Build
-import android.text.format.Formatter
 import android.view.Gravity
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,20 +12,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -37,8 +27,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,8 +50,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.os.LocaleListCompat
 import com.tahbeer.app.R
-import com.tahbeer.app.core.presentation.components.IconWithTooltip
+import com.tahbeer.app.core.presentation.components.LanguagePickerDialog
 import com.tahbeer.app.core.presentation.utils.findActivity
+import com.tahbeer.app.home.presentation.components.WhisperModelItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,18 +62,18 @@ fun SettingsBottomSheet(
 ) {
     val context = LocalContext.current
 
-    //Vosk model managing
-    var showVoskModelBottomSheet by remember { mutableStateOf(false) }
+    // Whisper model managing
+    var showModelBottomSheet by remember { mutableStateOf(false) }
     TextButton(
-        onClick = { showVoskModelBottomSheet = true },
+        onClick = { showModelBottomSheet = true },
         shape = MaterialTheme.shapes.extraSmall,
         contentPadding = PaddingValues()
     ) {
         ListItem(
-            headlineContent = { Text(text = stringResource(R.string.settings_vosk_model_label)) },
+            headlineContent = { Text(text = stringResource(R.string.settings_model_label)) },
             supportingContent = {
                 Text(
-                    text = stringResource(R.string.settings_vosk_model_desc),
+                    text = stringResource(R.string.settings_model_desc),
                     modifier = Modifier.alpha(0.8f)
                 )
             },
@@ -98,130 +87,15 @@ fun SettingsBottomSheet(
         )
     }
 
-    var searchQuery by remember { mutableStateOf("") }
-    if (showVoskModelBottomSheet) {
+    if (showModelBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = {
-                showVoskModelBottomSheet = false
+                showModelBottomSheet = false
             },
         ) {
             Column {
-                TextField(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    colors = TextFieldDefaults.colors().copy(
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent
-                    ),
-                    value = searchQuery,
-                    onValueChange = {
-                        searchQuery = it
-                        onAction(SettingsAction.OnVoskModelsFilter(it))
-                    },
-                    placeholder = { Text(stringResource(R.string.settings_vosk_model_search)) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null
-                        )
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(50.dp),
-                )
-                LazyColumn {
-                    items(state.voskModels, key = { it.lang }) { model ->
-                        val locale = Locale(model.lang).platformLocale
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "${locale.displayLanguage} ${
-                                    locale.displayCountry
-                                }",
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(start = 16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = Formatter.formatFileSize(
-                                    context,
-                                    model.size
-                                ),
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .padding(end = 16.dp)
-                                    .size(40.dp)
-                                    .background(
-                                        color = MaterialTheme.colorScheme.onSecondary,
-                                        shape = RoundedCornerShape(12.dp)
-                                    )
-                            ) {
-                                AnimatedContent((model.downloadingProgress != null)) { isDownloading ->
-                                    if (!isDownloading) {
-                                        when (model.isDownloaded) {
-                                            true -> IconButton(
-                                                onClick = {
-                                                    onAction(
-                                                        SettingsAction.OnVoskModelDelete(
-                                                            model.lang
-                                                        )
-                                                    )
-                                                },
-                                            ) {
-                                                IconWithTooltip(
-                                                    icon = ImageVector.vectorResource(R.drawable.delete),
-                                                    text = stringResource(R.string.settings_model_delete),
-                                                )
-                                            }
-
-                                            false -> IconButton(
-                                                onClick = {
-                                                    onAction(
-                                                        SettingsAction.OnVoskModelDownload(
-                                                            model.lang
-                                                        )
-                                                    )
-                                                },
-                                            ) {
-                                                IconWithTooltip(
-                                                    icon = ImageVector.vectorResource(R.drawable.download),
-                                                    text = stringResource(R.string.settings_model_download),
-                                                )
-                                            }
-                                        }
-                                    } else {
-                                        when (model.downloadingProgress != null) {
-                                            true -> Box(contentAlignment = Alignment.Center) {
-                                                CircularProgressIndicator(
-                                                    modifier = Modifier.padding(2.dp),
-                                                    progress = {
-                                                        model.downloadingProgress
-                                                    },
-                                                )
-                                                Text(
-                                                    text = "${
-                                                        model.downloadingProgress.times(100).toInt()
-                                                    }%",
-                                                    style = MaterialTheme.typography.bodySmall
-                                                )
-                                            }
-
-                                            false -> CircularProgressIndicator()
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        HorizontalDivider(modifier = Modifier.alpha(0.5f))
-                    }
+                state.whisperModels.forEach { model ->
+                    WhisperModelItem(model, { onAction(it) })
                 }
             }
         }
@@ -348,7 +222,7 @@ fun SettingsBottomSheet(
         }
 
         //Language settings
-        var showLanguageBottomSheet by remember { mutableStateOf(false) }
+        var showLanguageDialog by remember { mutableStateOf(false) }
         val appLocales = listOf("ar", "en")
         val onLocaleClick = { lang: String ->
             context.findActivity()?.runOnUiThread {
@@ -357,67 +231,41 @@ fun SettingsBottomSheet(
                 AppCompatDelegate.setApplicationLocales(appLocale)
             }
         }
-        TextButton(
-            onClick = { showLanguageBottomSheet = true },
-            shape = MaterialTheme.shapes.extraSmall,
-            contentPadding = PaddingValues()
-        ) {
-            ListItem(
-                headlineContent = { Text(text = stringResource(R.string.settings_lang_label)) },
-                supportingContent = {
-                    Text(
-                        text = Locale(Locale.current.language).platformLocale.displayLanguage,
-                        modifier = Modifier.alpha(0.8f)
-                    )
+
+        ListItem(
+            modifier = Modifier.clickable { showLanguageDialog = true },
+            headlineContent = { Text(text = stringResource(R.string.settings_lang_label)) },
+            supportingContent = {
+                Text(
+                    text = Locale(Locale.current.language).platformLocale.displayLanguage,
+                    modifier = Modifier.alpha(0.8f)
+                )
+            },
+            trailingContent = {
+                Icon(
+                    ImageVector.vectorResource(R.drawable.chevron_right),
+                    contentDescription = null
+                )
+            },
+            leadingContent = {
+                Icon(
+                    ImageVector.vectorResource(R.drawable.language),
+                    null,
+                )
+            },
+            colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+        )
+        if (showLanguageDialog) {
+            LanguagePickerDialog(
+                onLanguageSelected = { language ->
+                    onLocaleClick(language)
+                    showLanguageDialog = false
                 },
-                leadingContent = {
-                    Icon(
-                        ImageVector.vectorResource(R.drawable.language),
-                        null,
-                    )
-                },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                languages = appLocales,
+                onDismissRequest = { showLanguageDialog = false }
             )
-        }
-        if (showLanguageBottomSheet) {
-            ModalBottomSheet(
-                onDismissRequest = {
-                    showLanguageBottomSheet = false
-                },
-            ) {
-
-                LazyColumn(
-                    modifier = Modifier.selectableGroup(),
-                ) {
-
-                    appLocales.forEach { locale ->
-                        item {
-                            Row(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .height(56.dp)
-                                    .selectable(
-                                        selected = (locale == Locale.current.language),
-                                        onClick = { onLocaleClick(locale) },
-                                        role = Role.RadioButton
-                                    ),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(
-                                    modifier = Modifier.padding(start = 16.dp),
-                                    selected = (locale == Locale.current.language),
-                                    onClick = null
-                                )
-                                Text(
-                                    text = Locale(locale).platformLocale.displayLanguage,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    modifier = Modifier.padding(start = 16.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }
+
+
