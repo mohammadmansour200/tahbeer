@@ -1,133 +1,111 @@
 package com.tahbeer.app.home.presentation
 
 import android.net.Uri
-import android.view.Gravity
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogWindowProvider
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tahbeer.app.R
 import com.tahbeer.app.core.domain.CoreConstants.AUDIO_MIME_TYPES
+import com.tahbeer.app.core.domain.CoreConstants.SUBTITLE_MIME_TYPES
 import com.tahbeer.app.core.domain.CoreConstants.VIDEO_MIME_TYPES
+import com.tahbeer.app.core.domain.model.MediaType
+import com.tahbeer.app.core.presentation.components.AppSnackbarHost
 import com.tahbeer.app.core.presentation.components.IconWithTooltip
 import com.tahbeer.app.core.presentation.utils.ObserveAsEvents
-import com.tahbeer.app.home.domain.settings.ModelError
+import com.tahbeer.app.home.domain.model.SubtitleEntry
+import com.tahbeer.app.home.domain.model.TranscriptionItem
+import com.tahbeer.app.home.domain.model.TranscriptionStatus
+import com.tahbeer.app.home.domain.settings.DownloadError
 import com.tahbeer.app.home.presentation.components.BottomSheetType
 import com.tahbeer.app.home.presentation.components.SheetContent
+import com.tahbeer.app.home.presentation.components.StartTranscriptionBottomSheet
+import com.tahbeer.app.home.presentation.settings.SettingsAction
 import com.tahbeer.app.home.presentation.settings.SettingsEvent
-import com.tahbeer.app.home.presentation.settings.SettingsViewModel
+import com.tahbeer.app.home.presentation.settings.SettingsState
+import com.tahbeer.app.home.presentation.transcription_list.TranscriptionList
+import com.tahbeer.app.home.presentation.transcription_list.TranscriptionListAction
+import com.tahbeer.app.home.presentation.transcription_list.TranscriptionListState
 import com.tahbeer.app.ui.theme.AppTheme
-import org.koin.androidx.compose.koinViewModel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    viewModel: SettingsViewModel = koinViewModel(),
+    settingsEvents: Flow<SettingsEvent> = emptyFlow(),
+    settingsState: SettingsState,
+    transcriptionListState: TranscriptionListState,
+    settingsOnAction: (SettingsAction) -> Unit,
+    transcriptionListOnAction: (TranscriptionListAction) -> Unit,
     receivedUri: Uri? = null,
 ) {
     val context = LocalContext.current
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var currentBottomSheet: BottomSheetType? by remember { mutableStateOf(null) }
-    var pickedFile by remember { mutableStateOf(receivedUri) }
+    var pickedUri by remember { mutableStateOf(receivedUri) }
 
-    ObserveAsEvents(events = viewModel.events) {
+    ObserveAsEvents(events = settingsEvents) {
         when (it) {
             SettingsEvent.ModelDeleteSuccess -> {
-                Toast.makeText(context, R.string.settings_model_delete_success, Toast.LENGTH_SHORT)
-                    .show()
+                snackbarHostState.showSnackbar(context.getString(R.string.settings_model_delete_success))
             }
 
             SettingsEvent.ModelDownloadSuccess -> {
-                Toast.makeText(
-                    context,
-                    R.string.settings_model_download_success,
-                    Toast.LENGTH_SHORT
-                ).show()
+                snackbarHostState.showSnackbar(context.getString(R.string.settings_model_download_success))
             }
 
             is SettingsEvent.ModelDownloadError -> {
                 val messageResId = when (it.error) {
-                    ModelError.NETWORK_ERROR -> R.string.settings_model_error_network
-                    ModelError.DOWNLOAD_FAILED -> R.string.settings_model_error_download_failed
-                    ModelError.INSUFFICIENT_SPACE -> R.string.settings_model_error_insufficient_space
-                    ModelError.UNKNOWN_ERROR -> R.string.settings_model_error_unknown
+                    DownloadError.NETWORK_ERROR -> R.string.settings_model_error_network
+                    DownloadError.DOWNLOAD_FAILED -> R.string.settings_model_error_download_failed
+                    DownloadError.INSUFFICIENT_SPACE -> R.string.settings_model_error_insufficient_space
                 }
-                Toast.makeText(context, messageResId, Toast.LENGTH_LONG).show()
+                snackbarHostState.showSnackbar(context.getString(messageResId))
             }
         }
     }
 
     Scaffold(
+        snackbarHost = { AppSnackbarHost(snackbarHostState = snackbarHostState) },
         bottomBar = {
             BottomAppBar(
                 actions = {
-                    var menuExpanded by remember { mutableStateOf(false) }
-
-                    val onMenuItemClick: (BottomSheetType) -> Unit = { type ->
-                        currentBottomSheet = type
-                        menuExpanded = false
-                    }
-
-                    IconButton(onClick = { menuExpanded = !menuExpanded }) {
+                    IconButton(onClick = { currentBottomSheet = BottomSheetType.ABOUT }) {
                         IconWithTooltip(
-                            icon = Icons.Filled.MoreVert,
-                            text = stringResource(R.string.more_options),
+                            text = stringResource(R.string.about_menu_item),
+                            icon = Icons.Filled.Info
                         )
                     }
-                    DropdownMenu(
-                        expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.settings_menu_item)) },
-                            onClick = { onMenuItemClick(BottomSheetType.SETTINGS) },
-                            leadingIcon = { Icon(Icons.Filled.Settings, null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.about_menu_item)) },
-                            onClick = { onMenuItemClick(BottomSheetType.ABOUT) },
-                            leadingIcon = { Icon(Icons.Filled.Info, null) }
+                    IconButton(onClick = { currentBottomSheet = BottomSheetType.SETTINGS }) {
+                        IconWithTooltip(
+                            text = stringResource(R.string.settings_menu_item),
+                            icon = Icons.Filled.Settings
                         )
                     }
                 },
@@ -136,7 +114,7 @@ fun HomeScreen(
                     val launcher =
                         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {
                             if (it != null) {
-                                pickedFile = it
+                                pickedUri = it
                             }
                         }
                     FloatingActionButton(
@@ -145,6 +123,7 @@ fun HomeScreen(
                                 arrayOf(
                                     *AUDIO_MIME_TYPES,
                                     *VIDEO_MIME_TYPES,
+                                    *SUBTITLE_MIME_TYPES
                                 )
                             )
                         }
@@ -158,28 +137,32 @@ fun HomeScreen(
                 }
             )
         }) { innerPadding ->
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+        TranscriptionList(
             modifier = modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-        ) {
+                .padding(innerPadding),
+            transcriptionItems = transcriptionListState.transcriptions,
+            onItemClick = {
+                transcriptionListOnAction(TranscriptionListAction.OnTranscriptClick(it))
+            },
+        )
 
-        }
-
-        pickedFile?.let {
-            Dialog(onDismissRequest = { pickedFile = null }) {
-                val dialogWindowProvider = LocalView.current.parent as DialogWindowProvider
-                dialogWindowProvider.window.setGravity(Gravity.BOTTOM)
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp)),
-                ) {
-
-                }
+        pickedUri?.let { uri ->
+            ModalBottomSheet(
+                onDismissRequest = {
+                    pickedUri = null
+                },
+            ) {
+                StartTranscriptionBottomSheet(
+                    whisperModels = settingsState.whisperModels,
+                    settingsOnAction = { settingsOnAction(it) },
+                    transcriptionListOnAction = {
+                        transcriptionListOnAction(it)
+                        pickedUri = null
+                    },
+                    pickedUri = uri,
+                    snackbarHostState = snackbarHostState
+                )
             }
         }
     }
@@ -193,8 +176,8 @@ fun HomeScreen(
             currentBottomSheet?.let { type ->
                 SheetContent(
                     bottomSheetType = type,
-                    settingsState = state,
-                    settingsOnAction = { viewModel.onAction(it) }
+                    settingsState = settingsState,
+                    settingsOnAction = { settingsOnAction(it) }
                 )
             }
         }
@@ -205,6 +188,48 @@ fun HomeScreen(
 @Composable
 private fun HomeScreenPreview() {
     AppTheme(dynamicColor = false) {
-        HomeScreen()
+        HomeScreen(
+            settingsState = SettingsState(),
+            transcriptionListState = TranscriptionListState(
+                listOf(
+                    TranscriptionItem(
+                        id = "2",
+                        mediaUri = "https://example.com/video2.mp4",
+                        mediaType = MediaType.VIDEO,
+                        lang = "fr",
+                        title = "Transcription 2",
+                        status = TranscriptionStatus.SUCCESS,
+                        progress = 1f,
+                        result = listOf(
+                            SubtitleEntry(startTime = 0, endTime = 50, text = "Hello, world!"),
+                            SubtitleEntry(
+                                startTime = 50,
+                                endTime = 10,
+                                text = "This is a subtitle."
+                            )
+                        )
+                    ),
+                    TranscriptionItem(
+                        id = "1",
+                        mediaUri = "https://example.com/video2.mp3",
+                        mediaType = MediaType.AUDIO,
+                        lang = "fr",
+                        title = "Transcription 2",
+                        status = TranscriptionStatus.PROCESSING,
+                        progress = 0.5f,
+                        result = listOf(
+                            SubtitleEntry(startTime = 0, endTime = 50, text = "Hello, world!"),
+                            SubtitleEntry(
+                                startTime = 50,
+                                endTime = 100,
+                                text = "This is a subtitle."
+                            )
+                        )
+                    )
+                )
+            ),
+            settingsOnAction = {},
+            transcriptionListOnAction = {},
+        )
     }
 }
