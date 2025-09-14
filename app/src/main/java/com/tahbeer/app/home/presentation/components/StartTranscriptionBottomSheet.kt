@@ -62,9 +62,11 @@ fun StartTranscriptionBottomSheet(
     val snackScope = rememberCoroutineScope()
     val type = context.contentResolver.getType(pickedUri)
 
+    val isMedia = type?.isVideo() == true || type?.isAudio() == true
+
     AnimatedContent(whisperModels.none { it.isDownloaded }) { noDownloadedModel ->
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            if (noDownloadedModel && (type?.isVideo() == true || type?.isAudio() == true)) {
+            if (noDownloadedModel && (isMedia)) {
                 Text(
                     text = stringResource(R.string.download_model_title),
                     style = MaterialTheme.typography.titleLarge
@@ -76,7 +78,7 @@ fun StartTranscriptionBottomSheet(
                 }
             } else {
                 var selectedModel by remember { mutableStateOf(whisperModels.filter { it.isDownloaded }[0]) }
-                if (type?.isVideo() == true || type?.isAudio() == true) {
+                if (isMedia) {
                     Column(modifier = Modifier.selectableGroup()) {
                         ListItem(
                             modifier = Modifier.padding(PaddingValues()),
@@ -133,7 +135,7 @@ fun StartTranscriptionBottomSheet(
 
                 //  languages picker
                 var selectedLanguage by rememberSaveable { mutableStateOf("") }
-                AnimatedVisibility(!selectedModel.enOnly) {
+                AnimatedVisibility(!selectedModel.enOnly || !isMedia) {
                     var showLanguageDialog by remember { mutableStateOf(false) }
 
                     val supportedLanguages = listOf(
@@ -187,7 +189,7 @@ fun StartTranscriptionBottomSheet(
                 Button(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {
-                        if (!selectedModel.enOnly && selectedLanguage.isEmpty()) {
+                        if (!selectedModel.enOnly && selectedLanguage.isEmpty() || !isMedia && selectedLanguage.isEmpty()) {
                             snackScope.launch {
                                 snackbarHostState.showSnackbar(context.getString(R.string.select_lang_err))
                             }
@@ -197,7 +199,7 @@ fun StartTranscriptionBottomSheet(
                         transcriptionListOnAction(
                             TranscriptionListAction.OnTranscriptFile(
                                 selectedModel.type,
-                                if (!selectedModel.enOnly) selectedLanguage else "en",
+                                if (!selectedModel.enOnly || !isMedia) selectedLanguage else "en",
                                 pickedUri,
                             )
                         )
