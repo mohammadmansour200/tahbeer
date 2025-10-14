@@ -14,3 +14,10 @@ fun String.isAudio(): Boolean {
     return mimeType.contains("audio")
 }
 
+fun String.isText(): Boolean {
+    if (this.contains("/")) return this.contains("text")
+
+    val mimeType = MimeTypeMap.getMimeTypeFromExtension(this)!!
+    return mimeType.contains("text")
+}
+

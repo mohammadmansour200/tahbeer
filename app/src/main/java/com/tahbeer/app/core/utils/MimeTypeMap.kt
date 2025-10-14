@@ -167,4 +167,11 @@ private val mimeTypeData = buildMap {
     put("ogg", "audio/ogg")
     put("oga", "audio/ogg")
     put("m4a", "audio/mp4")
+
+    put("txt", "text/plain")
+    put("vtt", "text/vtt")
+    put("srt", "text/plain")
+    put("txt", "application/octet-stream")
+    put("vtt", "application/octet-stream")
+    put("srt", "application/octet-stream")
 }

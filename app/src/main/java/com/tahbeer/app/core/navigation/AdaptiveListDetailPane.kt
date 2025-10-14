@@ -9,8 +9,8 @@ import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaf
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.tahbeer.app.details.presentation.DetailScreen
 import com.tahbeer.app.home.presentation.HomeScreen
 import com.tahbeer.app.home.presentation.settings.SettingsViewModel
 import com.tahbeer.app.home.presentation.transcription_list.TranscriptionListAction
@@ -20,8 +20,7 @@ import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-fun AdaptiveCoinListDetailPane(
-    modifier: Modifier = Modifier,
+fun AdaptiveListDetailPane(
     transcriptionListViewModel: TranscriptionListViewModel = koinViewModel(),
     settingsViewModel: SettingsViewModel = koinViewModel(),
     receivedUri: Uri?
@@ -55,16 +54,44 @@ fun AdaptiveCoinListDetailPane(
                                 }
                             }
 
+                            is TranscriptionListAction.OnTranscriptDelete -> {
+                                transcriptionListViewModel.onAction(action)
+                                if (action.transcriptionId == transcriptionListState.selectedTranscriptionId) {
+                                    coroutineScope.launch {
+                                        navigator.navigateTo(
+                                            pane = ListDetailPaneScaffoldRole.List
+                                        )
+                                    }
+                                }
+                            }
+
                             else -> transcriptionListViewModel.onAction(action)
                         }
-                    }
+                    },
                 )
             }
         },
         detailPane = {
             AnimatedPane {
+                DetailScreen(
+                    transcriptionListState = transcriptionListState,
+                    settingsState = settingsState,
+                    onGoBack = {
+                        coroutineScope.launch {
+                            navigator.navigateTo(
+                                pane = ListDetailPaneScaffoldRole.List
+                            )
+                            transcriptionListViewModel.onAction(
+                                TranscriptionListAction.OnTranscriptClick(
+                                    null
+                                )
+                            )
+                        }
+                    },
+                    transcriptionListOnAction = { transcriptionListViewModel.onAction(it) },
+                    settingsOnAction = { settingsViewModel.onAction(it) },
+                )
             }
         },
-        modifier = modifier
     )
 }
