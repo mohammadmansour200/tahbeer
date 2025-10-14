@@ -8,6 +8,7 @@ interface SpeechRecognition {
         modelType: String,
         uri: Uri,
         lang: String,
+        id: String,
         onProgress: (Float) -> Unit
     ): Result<List<SubtitleEntry>>
 }

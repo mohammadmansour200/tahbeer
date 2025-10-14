@@ -7,5 +7,6 @@ import com.tahbeer.app.core.domain.model.TranscriptionItem
 data class TranscriptionListState(
     val transcriptions: List<TranscriptionItem> = emptyList(),
     val selectedTranscriptionId: String? = null,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val translationProgress: Float? = null,
 )

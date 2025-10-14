@@ -13,6 +13,7 @@ import com.tahbeer.app.home.presentation.transcription_list.components.Transcrip
 fun TranscriptionList(
     transcriptionListState: TranscriptionListState,
     onItemClick: (String) -> Unit,
+    onItemDelete: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (transcriptionListState.isLoading) {
@@ -26,8 +27,9 @@ fun TranscriptionList(
             TranscriptionListItem(
                 modifier = Modifier.animateItem(),
                 transcriptionItem = item,
+                isSelected = transcriptionListState.selectedTranscriptionId == item.id,
                 onItemClick = { onItemClick(item.id) },
-                onDeleteClick = {},
+                onDeleteClick = { onItemDelete(item.id) },
             )
         }
     }

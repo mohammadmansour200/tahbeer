@@ -5,7 +5,11 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.mlkit.nl.translate.TranslateLanguage
+import com.google.mlkit.nl.translate.Translation
+import com.google.mlkit.nl.translate.TranslatorOptions.Builder
 import com.tahbeer.app.core.domain.model.MediaType
+import com.tahbeer.app.core.domain.model.SubtitleEntry
 import com.tahbeer.app.core.domain.model.TranscriptionItem
 import com.tahbeer.app.core.domain.model.TranscriptionStatus
 import com.tahbeer.app.core.domain.model.toDomainModel
@@ -15,10 +19,12 @@ import com.tahbeer.app.core.utils.isVideo
 import com.tahbeer.app.home.domain.list.SpeechRecognition
 import com.tahbeer.app.home.utils.SubtitleManager.parseSubtitle
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -32,6 +38,9 @@ class TranscriptionListViewModel(
 
     private val _state = MutableStateFlow(TranscriptionListState())
     val state: StateFlow<TranscriptionListState> = _state
+
+    private var translationJob: Job? = null
+    private val transcriptionJobs = mutableMapOf<String, Job>()
 
     init {
         viewModelScope.launch {
@@ -54,11 +63,111 @@ class TranscriptionListViewModel(
             is TranscriptionListAction.OnTranscriptClick -> {
                 _state.update { it.copy(selectedTranscriptionId = action.transcriptionId) }
             }
+
+            is TranscriptionListAction.OnTranscriptDelete -> {
+                transcriptionJobs[action.transcriptionId]?.cancel()
+                transcriptionJobs.remove(action.transcriptionId)
+
+                _state.update { it.copy(transcriptions = it.transcriptions.filterNot { transcription -> transcription.id == action.transcriptionId }) }
+
+                viewModelScope.launch {
+                    deleteTranscription(action.transcriptionId)
+                }
+            }
+
+            is TranscriptionListAction.OnTranscriptEdit -> {
+                viewModelScope.launch {
+                    val transcriptionIndex =
+                        _state.value.transcriptions.indexOfFirst { it.id == action.transcriptionId }
+
+                    _state.update {
+                        it.copy(
+                            transcriptions = it.transcriptions.toMutableList().apply {
+                                this[transcriptionIndex] =
+                                    this[transcriptionIndex].copy(
+                                        result = action.editedResults
+                                    )
+                            }
+                        )
+                    }
+                    cacheTranscription(_state.value.transcriptions[transcriptionIndex])
+                }
+            }
+
+            is TranscriptionListAction.OnTranscriptTranslate -> {
+                val transcriptionIndex =
+                    _state.value.transcriptions.indexOfFirst { it.id == action.transcriptionId }
+
+                val transcriptionItem = _state.value.transcriptions[transcriptionIndex]
+                val totalResultsSize = transcriptionItem.result!!.size
+
+                val sourceLang = TranslateLanguage.fromLanguageTag(transcriptionItem.lang)
+                if (sourceLang.isNullOrEmpty()) {
+                    return
+                }
+                val targetLang = TranslateLanguage.fromLanguageTag(action.outputLang)
+                if (targetLang.isNullOrEmpty()) {
+                    return
+                }
+
+                translationJob = viewModelScope.launch {
+                    val options = Builder()
+                        .setSourceLanguage(sourceLang)
+                        .setTargetLanguage(targetLang)
+                        .build()
+
+                    val translator = Translation.getClient(options)
+
+                    val translatedSubtitles =
+                        transcriptionItem.result.mapIndexed { index, entry ->
+                            val translatedText = try {
+                                translator.translate(entry.text).await()
+                            } catch (e: Exception) {
+                                entry.text
+                            }
+
+                            _state.update { it.copy(translationProgress = (index + 1).toFloat() / totalResultsSize) }
+
+                            SubtitleEntry(
+                                startTime = entry.startTime,
+                                endTime = entry.endTime,
+                                text = translatedText
+                            )
+                        }
+
+                    _state.update {
+                        it.copy(
+                            transcriptions = it.transcriptions.toMutableList().apply {
+                                this[transcriptionIndex] =
+                                    this[transcriptionIndex].copy(
+                                        result = translatedSubtitles
+                                    )
+                            },
+                            translationProgress = null
+                        )
+                    }
+
+                    cacheTranscription(_state.value.transcriptions[transcriptionIndex])
+                }
+            }
+
+            TranscriptionListAction.cancelTranslation -> {
+                _state.update {
+                    it.copy(
+                        translationProgress = null
+                    )
+                }
+
+                translationJob?.cancel()
+                translationJob = null
+            }
         }
     }
 
     private fun transcribeFile(modelType: String, lang: String, uri: Uri) {
-        viewModelScope.launch {
+        val transcriptionId = UUID.randomUUID().toString()
+
+        val job = viewModelScope.launch {
             val type = appContext.contentResolver.getType(uri)
 
             val mediaType = when {
@@ -69,7 +178,7 @@ class TranscriptionListViewModel(
 
             val fileName = uri.fileName(appContext)
             val transcriptionItem = TranscriptionItem(
-                id = UUID.randomUUID().toString(),
+                id = transcriptionId,
                 lang = lang,
                 title = fileName,
                 status = TranscriptionStatus.PROCESSING,
@@ -94,7 +203,7 @@ class TranscriptionListViewModel(
                     if (result.isNullOrEmpty()) {
                         _state.update {
                             it.copy(
-                                transcriptions = _state.value.transcriptions.toMutableList().apply {
+                                transcriptions = it.transcriptions.toMutableList().apply {
                                     this[transcriptionIndex] =
                                         this[transcriptionIndex].copy(
                                             status = TranscriptionStatus.ERROR_PROCESSING
@@ -105,7 +214,7 @@ class TranscriptionListViewModel(
                     } else {
                         _state.update {
                             it.copy(
-                                transcriptions = _state.value.transcriptions.toMutableList().apply {
+                                transcriptions = it.transcriptions.toMutableList().apply {
                                     this[transcriptionIndex] =
                                         this[transcriptionIndex].copy(
                                             status = TranscriptionStatus.SUCCESS,
@@ -120,7 +229,7 @@ class TranscriptionListViewModel(
                     Log.e("LibWhisper", error.message.toString(), error)
                     _state.update {
                         it.copy(
-                            transcriptions = _state.value.transcriptions.toMutableList().apply {
+                            transcriptions = it.transcriptions.toMutableList().apply {
                                 this[transcriptionIndex] =
                                     this[transcriptionIndex].copy(
                                         status = TranscriptionStatus.ERROR_PROCESSING
@@ -128,12 +237,14 @@ class TranscriptionListViewModel(
                             }
                         )
                     }
+                } finally {
+                    transcriptionJobs.remove(transcriptionId)
                 }
             } else {
-                speechRecognition.processFile(modelType, uri, lang) { progress ->
+                speechRecognition.processFile(modelType, uri, lang, transcriptionId) { progress ->
                     _state.update {
                         it.copy(
-                            transcriptions = _state.value.transcriptions.toMutableList().apply {
+                            transcriptions = it.transcriptions.toMutableList().apply {
                                 this[transcriptionIndex] =
                                     this[transcriptionIndex].copy(
                                         progress = progress
@@ -143,9 +254,10 @@ class TranscriptionListViewModel(
                     }
                 }.fold(
                     onSuccess = { result ->
+                        transcriptionJobs.remove(transcriptionId)
                         _state.update {
                             it.copy(
-                                transcriptions = _state.value.transcriptions.toMutableList().apply {
+                                transcriptions = it.transcriptions.toMutableList().apply {
                                     this[transcriptionIndex] =
                                         this[transcriptionIndex].copy(
                                             status = TranscriptionStatus.SUCCESS,
@@ -157,6 +269,7 @@ class TranscriptionListViewModel(
                         cacheTranscription(_state.value.transcriptions[transcriptionIndex])
                     },
                     onFailure = { error ->
+                        transcriptionJobs.remove(transcriptionId)
                         Log.e("LibWhisper", error.message.toString(), error)
                         _state.update {
                             it.copy(
@@ -172,6 +285,8 @@ class TranscriptionListViewModel(
                 )
             }
         }
+
+        transcriptionJobs[transcriptionId] = job
     }
 
     private suspend fun cacheTranscription(transcriptionItem: TranscriptionItem) =
@@ -180,6 +295,12 @@ class TranscriptionListViewModel(
             File(appContext.cacheDir, "${transcriptionItem.id}.json").writeText(
                 transcriptionItemJson
             )
+        }
+
+    private suspend fun deleteTranscription(transcriptionItemId: String) =
+        withContext(Dispatchers.IO) {
+            File(appContext.cacheDir, "${transcriptionItemId}.json").delete()
+            File(appContext.cacheDir, "${transcriptionItemId}.wav").delete()
         }
 
     private suspend fun loadTranscriptions(): List<TranscriptionItem> =

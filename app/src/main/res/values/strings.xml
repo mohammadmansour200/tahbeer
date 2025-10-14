@@ -12,12 +12,13 @@
     <string name="start">Start!</string>
     <string name="status_error_processing">Something went wrong while transcribing…</string>
     <string name="status_processing">Transcribing…</string>
-    <string name="more_options">More options</string>
+    <string name="delete">Delete</string>
     <string name="add_transcript_fab">Upload file</string>
     <string name="settings_menu_item">Settings</string>
     <string name="about_menu_item">About</string>
 
     <string name="settings_model_label">Speech Recognition Packs</string>
+    <string name="settings_translate_label">Translation Packs</string>
     <string name="settings_model_desc">Download or remove a pack</string>
     <string name="settings_model_en_title">English</string>
     <string name="settings_model_multilingual_title">Multilingual</string>
@@ -44,4 +45,15 @@
     <string name="about_github_title">Source Code</string>
     <string name="about_github_description">Licensed under GNU GPLv3; You can use, study, share, and improve the source code at your will.</string>
     <string name="about_prayer_note">Don’t forget to pray for us and our parents.</string>
+
+    <string name="more_options">More options</string>
+    <string name="back_btn">Go back</string>
+    <string name="share_menu_item">Share</string>
+    <string name="translate_menu_item">Translate</string>
+    <string name="translate_to_label">Translate to</string>
+    <string name="export_menu_item">Export</string>
+    <string name="edit_subtitle_btn">Edit Subtitle</string>
+    <string name="confirm_btn">Confirm</string>
+    <string name="cancel_btn">Cancel</string>
+    <string name="export_btn">ُExport</string>
 </resources>

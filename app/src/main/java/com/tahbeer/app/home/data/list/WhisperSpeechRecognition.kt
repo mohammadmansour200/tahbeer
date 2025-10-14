@@ -25,6 +25,7 @@ class WhisperSpeechRecognition(context: Context) : SpeechRecognition {
         modelType: String,
         uri: Uri,
         lang: String,
+        id: String,
         onProgress: (Float) -> Unit
     ): Result<List<SubtitleEntry>> =
         withContext(Dispatchers.IO) {
@@ -32,7 +33,12 @@ class WhisperSpeechRecognition(context: Context) : SpeechRecognition {
                 val context =
                     createContextFromFile("${appContext.filesDir.absolutePath}/${modelType}.bin")
 
-                val results = processAudioFile(context, uri, lang) { onProgress(it) }
+                val results = processAudioFile(
+                    context = context,
+                    uri = uri,
+                    lang = lang,
+                    id = id
+                ) { onProgress(it) }
 
                 context.release()
                 Result.success(results)
@@ -45,13 +51,14 @@ class WhisperSpeechRecognition(context: Context) : SpeechRecognition {
         context: WhisperContext,
         uri: Uri,
         lang: String,
+        id: String,
         onProgress: (Float) -> Unit
     ): List<SubtitleEntry> {
         var result: List<SubtitleEntry> = emptyList()
 
         // Convert file to WAV
         val inputPath = FFmpegKitConfig.getSafParameterForRead(appContext, uri)
-        val wavFile = File.createTempFile("temp", ".wav", appContext.cacheDir)
+        val wavFile = File(appContext.cacheDir, "$id.wav")
 
         try {
             val session = FFmpegKit.execute(

@@ -5,7 +5,7 @@
     <string name="close">إغلاق</string>
     <string name="search_language">ابحث عن اللغة</string>
 
-    <string name="download_model_title">حمل إحدى هذه الحزم للتفريغ 👇</string>
+    <string name="download_model_title">حمل إحدى هذه الحزم للبدأ 👇</string>
     <string name="select_a_model">اختر الحزمة المناسبة</string>
     <string name="language">لغة المادة</string>
     <string name="language_desc">ما لغة الحديث في هذه المادة؟</string>
@@ -13,12 +13,13 @@
     <string name="start">ابدأ!</string>
     <string name="status_processing">دقائق من فضلك…</string>
     <string name="status_error_processing">حدث خطأ غير معروف أثناء التفريغ…</string>
-    <string name="more_options">المزيد من الخيارات</string>
+    <string name="delete">حذف</string>
     <string name="add_transcript_fab">رفع الملف</string>
     <string name="settings_menu_item">الإعدادات</string>
     <string name="about_menu_item">عن التطبيق</string>
 
     <string name="settings_model_label">حزم التعرف على الكلام</string>
+    <string name="settings_translate_label">حزم الترجمة</string>
     <string name="settings_model_desc">احذف أو حمل الحزم</string>
     <string name="settings_model_en_title">الإنجليزية فقط</string>
     <string name="settings_model_multilingual_title">متعدد اللغات</string>
@@ -45,4 +46,15 @@
     <string name="about_github_title">الكود المصدري</string>
     <string name="about_github_description">مرخص بموجب رخصة GNU GPLv3؛ يمكنك استخدام الكود المصدري، دراسته، مشاركته، وتحسينه بحرية.</string>
     <string name="about_prayer_note">لا تنسوا الدعاء لنا ولوالدينا وللمسلمين</string>
+
+    <string name="more_options">المزيد من الخيارات</string>
+    <string name="back_btn">الرجوع للخلف</string>
+    <string name="share_menu_item">مشاركة</string>
+    <string name="translate_menu_item">ترجمة</string>
+    <string name="translate_to_label">ترجم إلى</string>
+    <string name="export_menu_item">تصدير</string>
+    <string name="edit_subtitle_btn">تعديل</string>
+    <string name="confirm_btn">تأكيد</string>
+    <string name="cancel_btn">إلغاء</string>
+    <string name="export_btn">تصدير</string>
 </resources>

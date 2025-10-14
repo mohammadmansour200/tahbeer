@@ -145,6 +145,9 @@ fun HomeScreen(
             onItemClick = {
                 transcriptionListOnAction(TranscriptionListAction.OnTranscriptClick(it))
             },
+            onItemDelete = {
+                transcriptionListOnAction(TranscriptionListAction.OnTranscriptDelete(it))
+            }
         )
 
         pickedUri?.let { uri ->
