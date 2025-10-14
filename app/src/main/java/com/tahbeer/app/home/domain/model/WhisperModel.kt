@@ -4,7 +4,7 @@ import com.tahbeer.app.R
 
 
 data class WhisperModel(
-    val type: String,
+    val name: String,
     val size: Long,
     val url: String,
     val isDownloaded: Boolean = false,
@@ -37,6 +37,8 @@ object WhisperModelList {
     )
 
     fun getModelsByLanguage(language: String): WhisperModel {
-        return models.find { it.type == language } as WhisperModel
+        return models.find { it.name == language } as WhisperModel
     }
 }
+
+

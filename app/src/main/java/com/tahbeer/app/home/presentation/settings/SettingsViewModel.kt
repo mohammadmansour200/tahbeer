@@ -3,10 +3,13 @@ package com.tahbeer.app.home.presentation.settings
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tahbeer.app.home.domain.model.MlkitModel
+import com.tahbeer.app.home.domain.model.WhisperModel
 import com.tahbeer.app.home.domain.settings.DownloadError
 import com.tahbeer.app.home.domain.settings.ModelDownloadException
 import com.tahbeer.app.home.domain.settings.ModelManager
 import com.tahbeer.app.home.domain.settings.ThemePreferences
+import com.tahbeer.app.home.presentation.settings.SettingsEvent.ModelDownloadError
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +19,8 @@ import kotlinx.coroutines.launch
 
 class SettingsViewModel(
     private val themePreferences: ThemePreferences,
-    private val whisperModelManager: ModelManager
+    private val whisperModelManager: ModelManager<WhisperModel>,
+    private val mlkitModelManager: ModelManager<MlkitModel>
 ) : ViewModel() {
     private val _state = MutableStateFlow(SettingsState())
     val state: StateFlow<SettingsState> = _state
@@ -28,7 +32,8 @@ class SettingsViewModel(
         viewModelScope.launch {
             _state.update {
                 it.copy(
-                    whisperModels = whisperModelManager.loadAvailableModels()
+                    whisperModels = whisperModelManager.loadAvailableModels(),
+                    mlkitModels = mlkitModelManager.loadAvailableModels()
                 )
             }
             loadThemePrefs()
@@ -51,7 +56,7 @@ class SettingsViewModel(
             is SettingsAction.OnWhisperModelDownload -> {
                 viewModelScope.launch {
                     val modelIndex =
-                        _state.value.whisperModels.indexOfFirst { it.type == action.type }
+                        _state.value.whisperModels.indexOfFirst { it.name == action.name }
 
                     try {
                         val updatedList = _state.value.whisperModels.toMutableList().apply {
@@ -63,7 +68,7 @@ class SettingsViewModel(
                         }
 
                         whisperModelManager.downloadModel(
-                            type = action.type
+                            name = action.name
                         ) { progress ->
                             // Update progress state
                             val updatedList = _state.value.whisperModels.toMutableList().apply {
@@ -92,7 +97,7 @@ class SettingsViewModel(
                                     null -> {
                                         Log.e("Download", "Unknown error", throwable)
                                         _events.send(
-                                            SettingsEvent.ModelDownloadError(
+                                            ModelDownloadError(
                                                 DownloadError.DOWNLOAD_FAILED
                                             )
                                         )
@@ -101,7 +106,7 @@ class SettingsViewModel(
                                     else -> {
                                         Log.e("Download", modelDownloadException.message, throwable)
                                         _events.send(
-                                            SettingsEvent.ModelDownloadError(
+                                            ModelDownloadError(
                                                 modelDownloadException.downloadError
                                             )
                                         )
@@ -111,7 +116,7 @@ class SettingsViewModel(
 
                     } catch (e: Throwable) {
                         Log.e("Download", "Unknown error", e)
-                        _events.send(SettingsEvent.ModelDownloadError(DownloadError.DOWNLOAD_FAILED))
+                        _events.send(ModelDownloadError(DownloadError.DOWNLOAD_FAILED))
                     } finally {
                         val updatedList = _state.value.whisperModels.toMutableList().apply {
                             this[modelIndex] =
@@ -129,7 +134,7 @@ class SettingsViewModel(
             is SettingsAction.OnWhisperModelDelete -> {
                 viewModelScope.launch {
                     val modelIndex =
-                        _state.value.whisperModels.indexOfFirst { it.type == action.type }
+                        _state.value.whisperModels.indexOfFirst { it.name == action.name }
                     val updatedList = _state.value.whisperModels.toMutableList().apply {
                         this[modelIndex] =
                             this[modelIndex].copy(
@@ -140,8 +145,97 @@ class SettingsViewModel(
                         it.copy(whisperModels = updatedList)
                     }
 
-                    whisperModelManager.deleteModel(action.type)
+                    whisperModelManager.deleteModel(action.name)
                     _events.send(SettingsEvent.ModelDeleteSuccess)
+                }
+            }
+
+            is SettingsAction.OnMlkitModelDelete -> {
+                viewModelScope.launch {
+                    val modelIndex =
+                        _state.value.mlkitModels.indexOfFirst { it.lang == action.lang }
+                    val updatedList = _state.value.mlkitModels.toMutableList().apply {
+                        this[modelIndex] =
+                            this[modelIndex].copy(
+                                isDownloaded = false,
+                            )
+                    }
+                    _state.update {
+                        it.copy(mlkitModels = updatedList)
+                    }
+
+                    mlkitModelManager.deleteModel(action.lang)
+                    _events.send(SettingsEvent.ModelDeleteSuccess)
+                }
+            }
+
+            is SettingsAction.OnMlkitModelDownload -> {
+                viewModelScope.launch {
+                    val modelIndex =
+                        _state.value.mlkitModels.indexOfFirst { it.lang == action.lang }
+
+                    try {
+                        val updatedList = _state.value.mlkitModels.toMutableList().apply {
+                            this[modelIndex] =
+                                this[modelIndex].copy(
+                                    isDownloading = true
+                                )
+                        }
+                        _state.update {
+                            it.copy(mlkitModels = updatedList)
+                        }
+                        mlkitModelManager.downloadModel(
+                            name = action.lang, onProgress = {}
+                        ).fold(
+                            onSuccess = {
+                                val updatedList = _state.value.mlkitModels.toMutableList().apply {
+                                    this[modelIndex] =
+                                        this[modelIndex].copy(
+                                            isDownloaded = true
+                                        )
+                                }
+                                _state.update {
+                                    it.copy(mlkitModels = updatedList)
+                                }
+                                _events.send(SettingsEvent.ModelDownloadSuccess)
+                            },
+                            onFailure = { throwable ->
+                                when (val modelDownloadException =
+                                    throwable as? ModelDownloadException) {
+                                    null -> {
+                                        Log.e("Download", "Unknown error", throwable)
+                                        _events.send(
+                                            ModelDownloadError(
+                                                DownloadError.DOWNLOAD_FAILED
+                                            )
+                                        )
+                                    }
+
+                                    else -> {
+                                        Log.e("Download", modelDownloadException.message, throwable)
+                                        _events.send(
+                                            ModelDownloadError(
+                                                modelDownloadException.downloadError
+                                            )
+                                        )
+                                    }
+                                }
+                            })
+
+                    } catch (e: Throwable) {
+                        Log.e("Download", "Unknown error", e)
+                        _events.send(ModelDownloadError(DownloadError.DOWNLOAD_FAILED))
+                    } finally {
+                        val updatedList = _state.value.mlkitModels.toMutableList().apply {
+                            this[modelIndex] =
+                                this[modelIndex].copy(
+                                    isDownloading = false
+                                )
+                        }
+                        _state.update {
+                            it.copy(mlkitModels = updatedList)
+                        }
+                    }
                 }
             }
         }

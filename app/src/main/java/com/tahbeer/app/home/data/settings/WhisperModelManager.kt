@@ -14,7 +14,7 @@ import java.io.File
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
-class WhisperModelManager(context: Context) : ModelManager {
+class WhisperModelManager(context: Context) : ModelManager<WhisperModel> {
     private val appContext = context
     private val modelDir = appContext.filesDir
 
@@ -24,7 +24,7 @@ class WhisperModelManager(context: Context) : ModelManager {
             it.name
         }
         val whisperModels = WhisperModelList.models.toMutableList().map {
-            if (filesDirContent.contains("${it.type}.bin"))
+            if (filesDirContent.contains("${it.name}.bin"))
                 it.copy(isDownloaded = true)
             else it
         }
@@ -33,20 +33,20 @@ class WhisperModelManager(context: Context) : ModelManager {
     }
 
 
-    override suspend fun deleteModel(type: String) {
+    override suspend fun deleteModel(name: String) {
         val path =
-            "${appContext.filesDir}/${type}.bin"
+            "${appContext.filesDir}/${name}.bin"
         val model = File(path)
         model.delete()
     }
 
     override suspend fun downloadModel(
-        type: String,
+        name: String,
         onProgress: (progress: Float) -> Unit
     ): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val model = WhisperModelList.getModelsByLanguage(type)
-            val ggmlFile = File(modelDir, "${model.type}.bin")
+            val model = WhisperModelList.getModelsByLanguage(name)
+            val ggmlFile = File(modelDir, "${model.name}.bin")
 
             // Check available space
             if (!hasEnoughSpace(model.size)) {
@@ -89,7 +89,7 @@ class WhisperModelManager(context: Context) : ModelManager {
                             }
                         }
                     } catch (e: IOException) {
-                        deleteModel(type)
+                        deleteModel(name)
                         return@withContext Result.failure(
                             ModelDownloadException(
                                 DownloadError.DOWNLOAD_FAILED,
@@ -99,13 +99,13 @@ class WhisperModelManager(context: Context) : ModelManager {
                     }
                 }
 
-                Result.success(File(modelDir, model.type).absolutePath)
+                Result.success(File(modelDir, model.name).absolutePath)
             }
         } catch (e: okio.IOException) {
-            deleteModel(type)
+            deleteModel(name)
             Result.failure(ModelDownloadException(DownloadError.NETWORK_ERROR, e))
         } catch (e: Exception) {
-            deleteModel(type)
+            deleteModel(name)
             Result.failure(ModelDownloadException(DownloadError.DOWNLOAD_FAILED, e))
         }
     }

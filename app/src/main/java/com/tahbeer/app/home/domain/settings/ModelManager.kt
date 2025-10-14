@@ -1,16 +1,14 @@
 package com.tahbeer.app.home.domain.settings
 
-import com.tahbeer.app.home.domain.model.WhisperModel
-
-interface ModelManager {
+interface ModelManager<T> {
     suspend fun downloadModel(
-        type: String,
+        name: String,
         onProgress: (progress: Float) -> Unit
     ): Result<String>
 
     suspend fun deleteModel(
-        type: String,
+        name: String,
     )
 
-    suspend fun loadAvailableModels(): List<WhisperModel>
+    suspend fun loadAvailableModels(): List<T>
 }

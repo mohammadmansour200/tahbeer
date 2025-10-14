@@ -52,6 +52,7 @@ import androidx.core.os.LocaleListCompat
 import com.tahbeer.app.R
 import com.tahbeer.app.core.presentation.components.LanguagePickerDialog
 import com.tahbeer.app.core.presentation.utils.findActivity
+import com.tahbeer.app.home.presentation.components.MlkitDownloaderDialog
 import com.tahbeer.app.home.presentation.components.WhisperModelItem
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,9 +64,9 @@ fun SettingsBottomSheet(
     val context = LocalContext.current
 
     // Whisper model managing
-    var showModelBottomSheet by remember { mutableStateOf(false) }
+    var showWhisperBottomSheet by remember { mutableStateOf(false) }
     TextButton(
-        onClick = { showModelBottomSheet = true },
+        onClick = { showWhisperBottomSheet = true },
         shape = MaterialTheme.shapes.extraSmall,
         contentPadding = PaddingValues()
     ) {
@@ -83,14 +84,20 @@ fun SettingsBottomSheet(
                     contentDescription = null,
                 )
             },
+            trailingContent = {
+                Icon(
+                    ImageVector.vectorResource(R.drawable.chevron_right),
+                    contentDescription = null
+                )
+            },
             colors = ListItemDefaults.colors(containerColor = Color.Transparent)
         )
     }
 
-    if (showModelBottomSheet) {
+    if (showWhisperBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = {
-                showModelBottomSheet = false
+                showWhisperBottomSheet = false
             },
         ) {
             Column {
@@ -99,6 +106,47 @@ fun SettingsBottomSheet(
                 }
             }
         }
+    }
+
+    // mlkit model managing
+    var showMlkitDialog by remember { mutableStateOf(false) }
+    TextButton(
+        onClick = { showMlkitDialog = true },
+        shape = MaterialTheme.shapes.extraSmall,
+        contentPadding = PaddingValues()
+    ) {
+        ListItem(
+            headlineContent = { Text(text = stringResource(R.string.settings_translate_label)) },
+            supportingContent = {
+                Text(
+                    text = stringResource(R.string.settings_model_desc),
+                    modifier = Modifier.alpha(0.8f)
+                )
+            },
+            leadingContent = {
+                Icon(
+                    ImageVector.vectorResource(R.drawable.translate),
+                    contentDescription = null,
+                )
+            },
+            trailingContent = {
+                Icon(
+                    ImageVector.vectorResource(R.drawable.chevron_right),
+                    contentDescription = null
+                )
+            },
+            colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+        )
+    }
+
+    if (showMlkitDialog) {
+        MlkitDownloaderDialog(
+            languages = state.mlkitModels,
+            onAction = { onAction(it) },
+            onDismissRequest = {
+                showMlkitDialog = false
+            },
+        )
     }
 
     HorizontalDivider(modifier = Modifier.alpha(0.8f))

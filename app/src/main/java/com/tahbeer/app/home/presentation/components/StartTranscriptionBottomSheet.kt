@@ -94,7 +94,7 @@ fun StartTranscriptionBottomSheet(
                                     .clip(RoundedCornerShape(8.dp))
                                     .height(56.dp)
                                     .selectable(
-                                        selected = (model.type == selectedModel.type),
+                                        selected = (model.name == selectedModel.name),
                                         onClick = {
                                             selectedModel = model
                                         },
@@ -198,7 +198,7 @@ fun StartTranscriptionBottomSheet(
 
                         transcriptionListOnAction(
                             TranscriptionListAction.OnTranscriptFile(
-                                selectedModel.type,
+                                selectedModel.name,
                                 if (!selectedModel.enOnly || !isMedia) selectedLanguage else "en",
                                 pickedUri,
                             )
