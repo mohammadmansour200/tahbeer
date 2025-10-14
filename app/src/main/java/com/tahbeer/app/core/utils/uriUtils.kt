@@ -64,3 +64,8 @@ fun Uri.fileName(context: Context): String {
         }
     }
 }
+
+fun Uri.mimeType(context: Context): String? {
+    val type = context.contentResolver.getType(this) ?: return null
+    return type
+}

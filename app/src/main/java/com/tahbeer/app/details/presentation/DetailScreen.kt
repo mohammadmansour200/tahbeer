@@ -191,7 +191,8 @@ fun DetailScreen(
                             transcriptionItem = transcriptionItem,
                             transcriptionListOnAction = { transcriptionListOnAction(it) },
                             detailScreenAction = { viewModel.onAction(it) },
-                            settingsOnAction = { settingsOnAction(it) }
+                            settingsOnAction = { settingsOnAction(it) },
+                            detailScreenState = state
                         )
                     }
                 }

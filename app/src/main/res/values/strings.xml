@@ -56,4 +56,14 @@
     <string name="confirm_btn">Confirm</string>
     <string name="cancel_btn">Cancel</string>
     <string name="export_btn">ُExport</string>
+
+    <string name="export_error_unknown_title">Unknown error occurred! 😢</string>
+    <string name="export_error_input_file_title">File not found</string>
+    <string name="export_error_input_file_desc">Either it\'s deleted or corrupted. check file\'s validity.</string>
+    <string name="export_error_output_file_title">Something went wrong while saving file</string>
+    <string name="export_error_output_file_desc">Either there\'s no space left on device or no permissions to write to storage</string>
+    <string name="export_error_invalid_format_title">This format isn\'t supported or invalid</string>
+    <string name="export_error_detailed_desc">Error message</string>
+    <string name="export_success">Operation successfully completed! 🎉</string>
+    <string name="share_file">Share File!</string>
 </resources>

@@ -57,4 +57,14 @@
     <string name="confirm_btn">تأكيد</string>
     <string name="cancel_btn">إلغاء</string>
     <string name="export_btn">تصدير</string>
+
+    <string name="export_error_unknown_title">حدث خطأ غير معروف! 😢</string>
+    <string name="export_error_input_file_title">هذا الملف غير موجود</string>
+    <string name="export_error_input_file_desc">إما أنه قد تم حذفه أو أنه غير صالح. تأكد من صلاحية الملف.</string>
+    <string name="export_error_output_file_title">حدث خطأ أثناء حفظ الملف</string>
+    <string name="export_error_output_file_desc">إما أنه لا توجد مساحة متبقية على الجهاز أو لا توجد صلاحيات لحفظ الملف على وحدة التخزين.</string>
+    <string name="export_error_invalid_format_title">صيغة الملف هذا غير مدعومة أو غير صالحة</string>
+    <string name="export_error_detailed_desc">تفاصيل الخطأ</string>
+    <string name="export_success">تمت العملية بنجاح! 🎉</string>
+    <string name="share_file">شارك الملف!</string>
 </resources>

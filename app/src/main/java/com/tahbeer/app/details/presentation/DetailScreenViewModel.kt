@@ -10,8 +10,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tahbeer.app.details.domain.MediaStoreManager
+import com.tahbeer.app.details.domain.model.ExportError
 import com.tahbeer.app.details.domain.model.ExportFormat
-import com.tahbeer.app.details.domain.model.TranscriptionError
 import com.tahbeer.app.details.utils.longToTimestamp
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
@@ -38,16 +38,16 @@ class DetailScreenViewModel(
     private val isAndroidQOrLater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
 
     private suspend fun handleError(
-        transcriptionError: TranscriptionError,
+        exportError: ExportError,
         e: Throwable?,
         uri: Uri?
     ) {
         uri?.let { mediaStoreManager.deleteMedia(uri) }
-        Log.e("OperationScreenViewModel", "Error: ${transcriptionError.name}", e)
+        Log.e("OperationScreenViewModel", "Error: ${exportError.name}", e)
         _state.update {
             it.copy(
                 isOperating = false,
-                transcriptionError = transcriptionError,
+                error = exportError,
                 detailedErrorMessage = e?.message
             )
         }
@@ -70,7 +70,7 @@ class DetailScreenViewModel(
             _state.update {
                 it.copy(
                     isOperating = true,
-                    transcriptionError = null,
+                    error = null,
                 )
             }
 
@@ -87,7 +87,7 @@ class DetailScreenViewModel(
 
                 if (!granted) {
                     handleError(
-                        transcriptionError = TranscriptionError.ERROR_WRITING_OUTPUT,
+                        exportError = ExportError.ERROR_WRITING_OUTPUT,
                         null,
                         null
                     )
@@ -99,7 +99,7 @@ class DetailScreenViewModel(
                 operationBlock()
             } catch (e: Throwable) {
                 handleError(
-                    transcriptionError = TranscriptionError.ERROR_UNKNOWN,
+                    exportError = ExportError.ERROR_UNKNOWN,
                     e = e,
                     uri = null
                 )
@@ -112,7 +112,7 @@ class DetailScreenViewModel(
             is DetailScreenAction.OnExport -> safeExecute {
                 if (action.transcriptionItem.result == null) {
                     handleError(
-                        TranscriptionError.ERROR_NO_SUBTITLES,
+                        ExportError.ERROR_NO_SUBTITLES,
                         e = null,
                         uri = null
                     )
@@ -124,7 +124,7 @@ class DetailScreenViewModel(
                     action.exportFormat.name.lowercase()
                 ).fold(onSuccess = { uri ->
                     if (uri == null) {
-                        handleError(TranscriptionError.ERROR_INVALID_FORMAT, null, null)
+                        handleError(ExportError.ERROR_INVALID_FORMAT, null, null)
                         return@safeExecute
                     }
 
@@ -174,13 +174,13 @@ class DetailScreenViewModel(
 
                     mediaStoreManager.writeText(uri, subtitles)
                         .onFailure {
-                            handleError(TranscriptionError.ERROR_WRITING_OUTPUT, null, uri)
+                            handleError(ExportError.ERROR_WRITING_OUTPUT, null, uri)
                             return@safeExecute
                         }
                     handleSuccess(uri)
 
                 }, onFailure = {
-                    handleError(TranscriptionError.ERROR_WRITING_OUTPUT, null, null)
+                    handleError(ExportError.ERROR_WRITING_OUTPUT, null, null)
                     return@safeExecute
                 })
             }
