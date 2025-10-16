@@ -50,6 +50,10 @@ android {
 }
 
 dependencies {
+    // Color picker
+    implementation(libs.compose.color.picker.android)
+    implementation(libs.compose.color.picker)
+
     // Media3
     implementation(libs.androidx.media3.common)
     implementation(libs.androidx.media3.ui.compose)

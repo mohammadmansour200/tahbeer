@@ -12,7 +12,7 @@ import com.tahbeer.app.home.presentation.transcription_list.TranscriptionListAct
 import com.tahbeer.app.home.presentation.transcription_list.TranscriptionListState
 
 enum class BottomSheetType {
-    TRANSLATE, EXPORT, SUCCESS, ERROR
+    TRANSLATE, EXPORT, BURN, SUCCESS, ERROR
 }
 
 @Composable
@@ -39,7 +39,6 @@ fun SheetContent(
             )
 
             BottomSheetType.EXPORT -> ExportBottomSheet(
-                snackbarHostState = snackbarHostState,
                 onAction = { detailScreenAction(it) },
                 transcriptionItem = transcriptionItem
             )
@@ -51,6 +50,13 @@ fun SheetContent(
             BottomSheetType.ERROR -> ErrorBottomSheet(
                 detailedErrorMessage = detailScreenState.detailedErrorMessage,
                 error = detailScreenState.error
+            )
+
+            BottomSheetType.BURN -> BurnSubtitleSheet(
+                snackbarHostState = snackbarHostState,
+                state = detailScreenState,
+                onAction = { detailScreenAction(it) },
+                transcriptionItem = transcriptionItem,
             )
         }
     }

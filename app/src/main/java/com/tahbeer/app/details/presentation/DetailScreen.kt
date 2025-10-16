@@ -212,20 +212,28 @@ fun DetailScreen(
                                     currentBottomSheet = BottomSheetType.EXPORT
                                 },
                             )
+                            if (transcriptionItem.mediaType == MediaType.VIDEO)
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.burn_menu_item)) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        currentBottomSheet = BottomSheetType.BURN
+                                    },
+                                )
                         }
                     },
                     scrollBehavior = scrollBehavior
                 )
             }
         ) { innerPadding ->
-
             if (currentBottomSheet != null) {
-                ModalBottomSheet(onDismissRequest = {
-                    if (transcriptionListState.translationProgress !== null)
-                        return@ModalBottomSheet
+                ModalBottomSheet(
+                    onDismissRequest = {
+                        if (transcriptionListState.translationProgress != null || state.progress != null)
+                            return@ModalBottomSheet
 
-                    currentBottomSheet = null
-                }) {
+                        currentBottomSheet = null
+                    }) {
                     currentBottomSheet?.let { type ->
                         SheetContent(
                             snackbarHostState = snackbarHostState,

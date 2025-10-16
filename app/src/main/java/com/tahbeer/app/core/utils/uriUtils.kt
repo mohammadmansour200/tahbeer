@@ -69,3 +69,8 @@ fun Uri.mimeType(context: Context): String? {
     val type = context.contentResolver.getType(this) ?: return null
     return type
 }
+
+fun Uri.extension(context: Context): String? {
+    val type = context.contentResolver.getType(this) ?: return null
+    return MimeTypeMap.getExtensionFromMimeType(type)
+}

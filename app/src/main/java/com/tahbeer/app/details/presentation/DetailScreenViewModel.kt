@@ -3,19 +3,29 @@ package com.tahbeer.app.details.presentation
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.Player
+import com.arthenica.ffmpegkit.FFmpegKit
+import com.arthenica.ffmpegkit.FFmpegKitConfig
+import com.tahbeer.app.core.utils.extension
 import com.tahbeer.app.details.domain.MediaPlaybackManager
 import com.tahbeer.app.details.domain.MediaStoreManager
 import com.tahbeer.app.details.domain.model.ExportError
 import com.tahbeer.app.details.domain.model.ExportFormat
+import com.tahbeer.app.details.presentation.components.SubtitleStyles
+import com.tahbeer.app.details.utils.generateAssHeader
 import com.tahbeer.app.details.utils.longToTimestamp
+import com.tahbeer.app.details.utils.parseFfmpegError
+import com.tahbeer.app.details.utils.progress
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +33,9 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
 
 class DetailScreenViewModel(
     context: Context,
@@ -210,8 +223,257 @@ class DetailScreenViewModel(
                     return@safeExecute
                 })
             }
+
+            is DetailScreenAction.OnBurnSubtitle -> safeExecute {
+                if (action.transcriptionItem.result == null) {
+                    handleError(
+                        ExportError.ERROR_NO_SUBTITLES,
+                        e = null,
+                        uri = null
+                    )
+                    return@safeExecute
+                }
+
+                val regularFont = "IBMPlexSansArabic-Regular.ttf"
+                val boldFont = "IBMPlexSansArabic-Bold.ttf"
+                val fontDirectory = File(appContext.filesDir, "fonts").apply { mkdirs() }
+                copyAssetsToInternalStorage(appContext, regularFont, fontDirectory)
+                copyAssetsToInternalStorage(appContext, boldFont, fontDirectory)
+
+                val subtitles = buildString {
+                    val results = action.transcriptionItem.result
+                    for (i in results.indices) {
+                        val item = results[i]
+                        val start = item.startTime
+                        val end = item.endTime
+                        val text = item.text
+
+                        val timestamp = "${
+                            longToTimestamp(
+                                start,
+                                subtitleTimestamp = true,
+                                comma = true
+                            )
+                        } --> ${
+                            longToTimestamp(
+                                end,
+                                subtitleTimestamp = true,
+                                comma = true
+                            )
+                        }"
+                        append("${i + 1}\n$timestamp\n$text\n\n")
+                    }
+                }
+
+                val tempSrtSubtitleFile = File(appContext.cacheDir, "subtitle.srt")
+                val tempAssSubtitleFile = File(appContext.cacheDir, "subtitle.ass")
+                mediaStoreManager.writeText(tempSrtSubtitleFile.toUri(), subtitles)
+                    .onFailure {
+                        handleError(ExportError.ERROR_NO_SUBTITLES, null, null)
+                        return@safeExecute
+                    }
+
+                val pickedUri = action.transcriptionItem.mediaUri.toUri()
+                val retriever = MediaMetadataRetriever()
+                retriever.setDataSource(appContext, pickedUri)
+                try {
+                    val session = FFmpegKit.execute(
+                        "-y -i ${tempSrtSubtitleFile.absolutePath} ${tempAssSubtitleFile.absolutePath}"
+                    )
+                    Log.d("LibWhisper", session.allLogsAsString)
+                    when {
+                        session.returnCode.isValueSuccess -> {
+                            val widthString =
+                                retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
+                            val heightString =
+                                retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
+                            val videoWidth = widthString?.toIntOrNull() ?: 1280
+                            val videoHeight = heightString?.toIntOrNull() ?: 720
+
+                            applyStylesToAssFile(
+                                action.subtitleStyles, tempAssSubtitleFile, videoWidth, videoHeight
+                            )
+                            addFadeEffectToAssFile(tempAssSubtitleFile)
+                            replaceDefaultStyleInAssFile(tempAssSubtitleFile)
+
+                            val inputPath =
+                                FFmpegKitConfig.getSafParameterForRead(
+                                    appContext,
+                                    pickedUri
+                                )
+                            FFmpegKitConfig.setFontDirectory(
+                                appContext,
+                                fontDirectory.absolutePath, emptyMap()
+                            )
+
+                            val durationMs =
+                                retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                                    ?.toLongOrNull() ?: 0L
+                            runFFmpeg(
+                                command = "-i $inputPath -vf \"ass=${tempAssSubtitleFile.absolutePath}:fontsdir=${fontDirectory.absolutePath}\" -c:a copy",
+                                outputExtension = pickedUri.extension(appContext) ?: "mp4",
+                                outputTitle = action.transcriptionItem.title,
+                                durationMs = durationMs,
+                                onFinish = {
+                                    tempSrtSubtitleFile.delete()
+                                    tempAssSubtitleFile.delete()
+                                }
+                            )
+
+                        }
+
+                        session.returnCode.isValueError -> {
+                            throw Exception("FFmpeg conversion failed: ${session.allLogsAsString}")
+                        }
+                    }
+                } finally {
+                    retriever.release()
+                }
+            }
         }
     }
+
+
+    private suspend fun runFFmpeg(
+        command: String,
+        outputTitle: String,
+        outputExtension: String,
+        durationMs: Long,
+        onFinish: () -> Unit
+    ) = withContext(Dispatchers.IO) {
+        mediaStoreManager.createMediaUri(
+            outputTitle,
+            outputExtension
+        )
+            .fold(onSuccess = { uri ->
+                if (uri == null) {
+                    handleError(ExportError.ERROR_INVALID_FORMAT, null, null)
+                    return@withContext
+                }
+
+                val outputPath = if (isAndroidQOrLater) FFmpegKitConfig.getSafParameterForWrite(
+                    appContext,
+                    uri
+                ) else uri.path
+
+                FFmpegKit.executeAsync(
+                    "-y -protocol_whitelist saf,file,crypto $command $outputPath",
+                    { session ->
+                        val returnCode = session.returnCode
+                        val logs = session.allLogsAsString
+
+                        viewModelScope.launch {
+                            when {
+                                returnCode.isValueSuccess -> {
+                                    onFinish()
+                                    handleSuccess(uri)
+                                }
+
+                                returnCode.isValueCancel -> {
+                                    onFinish
+                                    mediaStoreManager.deleteMedia(uri)
+                                    _state.update {
+                                        it.copy(
+                                            isOperating = false,
+                                        )
+                                    }
+                                }
+
+                                returnCode.isValueError -> {
+                                    onFinish()
+                                    val parsedError = parseFfmpegError(logs)
+                                    handleError(parsedError, null, uri)
+                                }
+                            }
+                        }
+                    },
+                    { log ->
+                        Log.d("ffmpeg-kit", log?.message.toString())
+                        val progress = log?.progress(durationMs.div(1000))
+                        if (progress != null) _state.update { it.copy(progress = progress) }
+                    },
+                    null
+                )
+            }, onFailure = {
+                onFinish()
+                handleError(ExportError.ERROR_WRITING_OUTPUT, null, null)
+                return@withContext
+            })
+    }
+
+    private suspend fun copyAssetsToInternalStorage(
+        context: Context,
+        assetFileName: String,
+        targetDir: File
+    ): File = withContext(Dispatchers.IO) {
+        val targetFile = File(targetDir, assetFileName)
+        if (targetFile.exists()) return@withContext targetFile
+
+        context.assets.open(assetFileName).use { inputStream ->
+            FileOutputStream(targetFile).use { outputStream ->
+                inputStream.copyTo(outputStream)
+            }
+        }
+        return@withContext targetFile
+    }
+
+    private suspend fun applyStylesToAssFile(
+        styles: SubtitleStyles,
+        tempAssSubtitleFile: File,
+        videoWidth: Int,
+        videoHeight: Int
+    ) = withContext(Dispatchers.IO) {
+        val customFullHeader = generateAssHeader(
+            styles,
+            videoWidth,
+            videoHeight
+        )
+
+        val assContent = tempAssSubtitleFile.readText()
+        val eventsRegex = Regex("(\\[Events\\][\\s\\S]*)", setOf(RegexOption.MULTILINE))
+        val eventsMatch = eventsRegex.find(assContent)
+
+        if (eventsMatch == null) {
+            handleError(ExportError.ERROR_READING_INPUT, null, null)
+            return@withContext
+        }
+
+        val eventsSectionAndDialogues = eventsMatch.groupValues[1]
+        val finalAssContent = "$customFullHeader\n\n$eventsSectionAndDialogues"
+
+        tempAssSubtitleFile.writeText(finalAssContent)
+    }
+
+    private suspend fun addFadeEffectToAssFile(
+        tempAssSubtitleFile: File,
+    ) = withContext(Dispatchers.IO) {
+        val assContent = tempAssSubtitleFile.readText()
+
+        val dialogueRegex =
+            Regex("^(Dialogue:(?:\\s*[^,]*?,){9})(.+)", setOf(RegexOption.MULTILINE))
+
+        val fadeTag = "{\\\\fad(300,300)}"
+        val newContent = assContent.replace(
+            dialogueRegex,
+            "$1$fadeTag$2"
+        )
+
+        tempAssSubtitleFile.writeText(newContent)
+    }
+
+    private suspend fun replaceDefaultStyleInAssFile(
+        tempAssSubtitleFile: File,
+        newStyle: String = "CustomStyle"
+    ) = withContext(Dispatchers.IO) {
+        val assContent = tempAssSubtitleFile.readText()
+
+        val styleRegex = Regex("""^(Dialogue:(?:[^,]*?,){3})[^,]+(,.*)$""", RegexOption.MULTILINE)
+
+        val newContent = assContent.replace(styleRegex, "$1$newStyle$2")
+
+        tempAssSubtitleFile.writeText(newContent)
+    }
+
 
     private suspend fun observePlaybackEvents() {
         mediaPlaybackManager.events.collectLatest {
