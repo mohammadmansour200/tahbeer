@@ -10,5 +10,11 @@ data class DetailScreenState(
     val progress: Float? = null,
     val outputedFile: Uri? = null,
     val error: ExportError? = null,
-    val detailedErrorMessage: String? = null
+    val detailedErrorMessage: String? = null,
+    val mediaPosition: Long = 0L,
+    val mediaStatus: MediaStatus = MediaStatus.LOADING
 )
+
+enum class MediaStatus {
+    ERROR, READY, LOADING
+}

@@ -50,6 +50,11 @@ android {
 }
 
 dependencies {
+    // Media3
+    implementation(libs.androidx.media3.common)
+    implementation(libs.androidx.media3.ui.compose)
+    implementation(libs.androidx.media3.exoplayer)
+
     // OkHttp
     implementation(libs.okhttp)
 

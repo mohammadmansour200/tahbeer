@@ -67,4 +67,9 @@
     <string name="export_error_detailed_desc">تفاصيل الخطأ</string>
     <string name="export_success">تمت العملية بنجاح! 🎉</string>
     <string name="share_file">شارك الملف!</string>
+    <string name="playpause_button_play">تشغيل</string>
+    <string name="playpause_button_pause">إيقاف</string>
+    <string name="playback_speed">سرعة التشغيل</string>
+    <string name="forward_button">تقديم ١٠ ثوانٍ</string>
+    <string name="rewind_button">ترجيع ١٠ ثوانٍ</string>
 </resources>

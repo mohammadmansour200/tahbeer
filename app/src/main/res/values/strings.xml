@@ -66,4 +66,9 @@
     <string name="export_error_detailed_desc">Error message</string>
     <string name="export_success">Operation successfully completed! 🎉</string>
     <string name="share_file">Share File!</string>
+    <string name="playpause_button_play">Play</string>
+    <string name="playpause_button_pause">Pause</string>
+    <string name="playback_speed">Playback Speed</string>
+    <string name="forward_button">Forward 10s</string>
+    <string name="rewind_button">Rewind 10s</string>
 </resources>

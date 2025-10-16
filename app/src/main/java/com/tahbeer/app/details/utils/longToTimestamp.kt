@@ -12,7 +12,9 @@ fun longToTimestamp(t: Long, subtitleTimestamp: Boolean = false, comma: Boolean 
     msec -= sec * 1000
 
     val delimiter = if (comma) "," else "."
-    return if (subtitleTimestamp)
+    return if (msec < 0)
+        "--:--"
+    else if (subtitleTimestamp)
         String.format(Locale.US, "%02d:%02d:%02d%s%03d", hr, min, sec, delimiter, msec)
     else
         if (hr == 0L) {

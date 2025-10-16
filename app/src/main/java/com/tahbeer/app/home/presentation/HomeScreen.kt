@@ -1,5 +1,6 @@
 package com.tahbeer.app.home.presentation
 
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -115,6 +116,11 @@ fun HomeScreen(
                         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {
                             if (it != null) {
                                 pickedUri = it
+
+                                context.contentResolver.takePersistableUriPermission(
+                                    it,
+                                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                )
                             }
                         }
                     FloatingActionButton(

@@ -9,6 +9,8 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.Player
+import com.tahbeer.app.details.domain.MediaPlaybackManager
 import com.tahbeer.app.details.domain.MediaStoreManager
 import com.tahbeer.app.details.domain.model.ExportError
 import com.tahbeer.app.details.domain.model.ExportFormat
@@ -17,13 +19,16 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class DetailScreenViewModel(
     context: Context,
-    val mediaStoreManager: MediaStoreManager,
+    val player: Player,
+    val mediaPlaybackManager: MediaPlaybackManager,
+    private val mediaStoreManager: MediaStoreManager,
 ) : ViewModel() {
     private val appContext = context
 
@@ -36,6 +41,12 @@ class DetailScreenViewModel(
     private val deferred = CompletableDeferred<Boolean>()
 
     private val isAndroidQOrLater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+
+    override fun onCleared() {
+        super.onCleared()
+        _state.update { DetailScreenState() }
+        mediaPlaybackManager.releaseMedia()
+    }
 
     private suspend fun handleError(
         exportError: ExportError,
@@ -109,6 +120,21 @@ class DetailScreenViewModel(
 
     fun onAction(action: DetailScreenAction) {
         when (action) {
+            is DetailScreenAction.OnLoadMedia -> {
+                viewModelScope.launch {
+                    mediaPlaybackManager.loadMedia(uri = action.uri)
+
+                    launch { observePlaybackEvents() }
+                }
+            }
+
+            is DetailScreenAction.OnSeek -> {
+                _state.update { it.copy(mediaPosition = action.position) }
+                player.seekTo(
+                    action.position
+                )
+            }
+
             is DetailScreenAction.OnExport -> safeExecute {
                 if (action.transcriptionItem.result == null) {
                     handleError(
@@ -185,5 +211,27 @@ class DetailScreenViewModel(
                 })
             }
         }
+    }
+
+    private suspend fun observePlaybackEvents() {
+        mediaPlaybackManager.events.collectLatest {
+            when (it) {
+                is MediaPlaybackManager.Event.PositionChanged -> {
+                    updatePlaybackPosition(it.position)
+                }
+
+                MediaPlaybackManager.Event.MediaError -> {
+                    _state.update { state -> state.copy(mediaStatus = MediaStatus.ERROR) }
+                }
+
+                MediaPlaybackManager.Event.MediaReady -> {
+                    _state.update { state -> state.copy(mediaStatus = MediaStatus.READY) }
+                }
+            }
+        }
+    }
+
+    private fun updatePlaybackPosition(position: Long) {
+        _state.update { it.copy(mediaPosition = position) }
     }
 }

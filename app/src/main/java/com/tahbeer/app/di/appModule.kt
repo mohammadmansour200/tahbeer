@@ -1,6 +1,10 @@
 package com.tahbeer.app.di
 
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import com.tahbeer.app.details.data.media.LocalMediaPlaybackManager
 import com.tahbeer.app.details.data.media.LocalMediaStoreManager
+import com.tahbeer.app.details.domain.MediaPlaybackManager
 import com.tahbeer.app.details.domain.MediaStoreManager
 import com.tahbeer.app.details.presentation.DetailScreenViewModel
 import com.tahbeer.app.home.data.list.WhisperSpeechRecognition
@@ -40,6 +44,12 @@ val appModule = module {
         LocalMediaStoreManager(context = androidContext())
     }
 
+    single<Player> { ExoPlayer.Builder(get()).build() }
+
+    single<MediaPlaybackManager> {
+        LocalMediaPlaybackManager(player = get())
+    }
+
     viewModel {
         SettingsViewModel(
             themePreferences = get(),
@@ -58,7 +68,9 @@ val appModule = module {
     viewModel {
         DetailScreenViewModel(
             context = androidContext(),
-            mediaStoreManager = get()
+            mediaStoreManager = get(),
+            player = get(),
+            mediaPlaybackManager = get(),
         )
     }
 }
