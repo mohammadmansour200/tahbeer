@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -56,6 +58,7 @@ fun MediaPlayer(
 ) {
     Column(
         modifier = Modifier
+            .verticalScroll(rememberScrollState())
             .fillMaxWidth()
             .padding(bottom = 16.dp, start = 16.dp, end = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -64,6 +67,7 @@ fun MediaPlayer(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
                     .shadow(
                         elevation = 6.dp,
                         shape = RoundedCornerShape(16.dp),
