@@ -56,9 +56,13 @@
     <string name="translate_error">لغة التفريغ هذا غير معدوم للأسف الشديد.</string>
     <string name="translate_to_error">رجاء اختر لغة الترجمة التي ترغب بها…</string>
     <string name="export_menu_item">تصدير</string>
-    <string name="burn_menu_item">دمح مع الفيديو</string>
+    <string name="burn_menu_item">دمج مع الفيديو</string>
     <string name="burn_subtitle_btn">دمج</string>
     <string name="section_text_properties">خصائص النص</string>
+    <string name="section_choose_video">اختر الفيديو</string>
+    <string name="button_select_video">تحديد الفيديو</string>
+    <string name="select_video_error">رجاءً اختر مقطعًا قبل الدمج…</string>
+    <string name="clear_selection_btn">إلغاء الاختيار</string>
     <string name="section_positioning">الموضع</string>
     <string name="label_font_size">الحجم</string>
     <string name="label_font_bold">سميك</string>
@@ -87,6 +91,6 @@
     <string name="playpause_button_play">تشغيل</string>
     <string name="playpause_button_pause">إيقاف</string>
     <string name="playback_speed">سرعة التشغيل</string>
-    <string name="forward_button">تقديم ١٠ ثوانٍ</string>
-    <string name="rewind_button">ترجيع ١٠ ثوانٍ</string>
+    <string name="forward_button">تقدم ١٠ ثوانٍ</string>
+    <string name="rewind_button">الرجوع ١٠ ثوانٍ</string>
 </resources>

@@ -1,6 +1,10 @@
 package com.tahbeer.app.details.presentation.components
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -29,11 +34,13 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,17 +54,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.godaddy.android.colorpicker.ClassicColorPicker
 import com.godaddy.android.colorpicker.HsvColor
 import com.tahbeer.app.R
+import com.tahbeer.app.core.domain.model.MediaType
 import com.tahbeer.app.core.domain.model.TranscriptionItem
+import com.tahbeer.app.core.presentation.components.IconWithTooltip
+import com.tahbeer.app.core.utils.fileName
 import com.tahbeer.app.details.presentation.DetailScreenAction
 import com.tahbeer.app.details.presentation.DetailScreenState
 import kotlinx.coroutines.launch
@@ -84,6 +99,7 @@ fun BurnSubtitleSheet(
     transcriptionItem: TranscriptionItem
 ) {
     var styles by remember { mutableStateOf(SubtitleStyles()) }
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     Column(
@@ -121,6 +137,74 @@ fun BurnSubtitleSheet(
         }
 
         Spacer(Modifier.height(16.dp))
+
+        // Video Picker
+        var selectedVideoUri by remember { mutableStateOf<Uri?>(null) }
+        val videoPickerLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent()
+        ) { uri: Uri? ->
+            if (uri == null) return@rememberLauncherForActivityResult
+
+            selectedVideoUri = uri
+        }
+        if (transcriptionItem.mediaType == MediaType.SUBTITLE) {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            Text(
+                stringResource(R.string.section_choose_video),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = { videoPickerLauncher.launch("video/*") },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    ImageVector.vectorResource(R.drawable.videocam),
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                Text(text = stringResource(R.string.button_select_video))
+            }
+            AnimatedVisibility(selectedVideoUri != null) {
+                Spacer(Modifier.height(8.dp))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(R.drawable.movie),
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Text(
+                            text = selectedVideoUri?.fileName(context) ?: "",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        IconButton(
+                            onClick = { selectedVideoUri = null },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            IconWithTooltip(
+                                icon = Icons.Default.Close,
+                                text = stringResource(R.string.clear_selection_btn)
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+        }
 
         // Text Properties Section
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -226,9 +310,16 @@ fun BurnSubtitleSheet(
                         .fillMaxWidth()
                         .padding(top = 16.dp),
                     onClick = {
+                        if (transcriptionItem.mediaType == MediaType.SUBTITLE && selectedVideoUri == null) {
+                            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.select_video_error)) }
+                            return@Button
+                        }
+
                         onAction(
                             DetailScreenAction.OnBurnSubtitle(
-                                transcriptionItem = transcriptionItem, subtitleStyles = styles
+                                transcriptionItem = transcriptionItem,
+                                subtitleStyles = styles,
+                                videoUri = if (transcriptionItem.mediaType == MediaType.VIDEO) transcriptionItem.mediaUri?.toUri()!! else selectedVideoUri!!
                             )
                         )
                     }) { Text(stringResource(R.string.burn_subtitle_btn)) }

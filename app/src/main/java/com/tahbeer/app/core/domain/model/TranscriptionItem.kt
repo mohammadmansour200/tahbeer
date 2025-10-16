@@ -25,7 +25,7 @@ data class SubtitleEntry(
 @Serializable
 data class TranscriptionItem(
     val id: String,
-    val mediaUri: String,
+    val mediaUri: String? = null,
     val mediaType: MediaType,
     val lang: String,
     val title: String,

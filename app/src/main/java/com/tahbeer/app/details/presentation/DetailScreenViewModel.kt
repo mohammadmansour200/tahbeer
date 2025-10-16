@@ -135,6 +135,10 @@ class DetailScreenViewModel(
         when (action) {
             is DetailScreenAction.OnLoadMedia -> {
                 viewModelScope.launch {
+                    if (action.uri == null) {
+                        _state.update { state -> state.copy(mediaStatus = MediaStatus.ERROR) }
+                        return@launch
+                    }
                     mediaPlaybackManager.loadMedia(uri = action.uri)
 
                     launch { observePlaybackEvents() }
@@ -273,9 +277,8 @@ class DetailScreenViewModel(
                         return@safeExecute
                     }
 
-                val pickedUri = action.transcriptionItem.mediaUri.toUri()
                 val retriever = MediaMetadataRetriever()
-                retriever.setDataSource(appContext, pickedUri)
+                retriever.setDataSource(appContext, action.videoUri)
                 try {
                     val session = FFmpegKit.execute(
                         "-y -i ${tempSrtSubtitleFile.absolutePath} ${tempAssSubtitleFile.absolutePath}"
@@ -299,7 +302,7 @@ class DetailScreenViewModel(
                             val inputPath =
                                 FFmpegKitConfig.getSafParameterForRead(
                                     appContext,
-                                    pickedUri
+                                    action.videoUri
                                 )
                             FFmpegKitConfig.setFontDirectory(
                                 appContext,
@@ -311,7 +314,7 @@ class DetailScreenViewModel(
                                     ?.toLongOrNull() ?: 0L
                             runFFmpeg(
                                 command = "-i $inputPath -vf \"ass=${tempAssSubtitleFile.absolutePath}:fontsdir=${fontDirectory.absolutePath}\" -c:a copy",
-                                outputExtension = pickedUri.extension(appContext) ?: "mp4",
+                                outputExtension = action.videoUri.extension(appContext) ?: "mp4",
                                 outputTitle = action.transcriptionItem.title,
                                 durationMs = durationMs,
                                 onFinish = {
@@ -319,7 +322,6 @@ class DetailScreenViewModel(
                                     tempAssSubtitleFile.delete()
                                 }
                             )
-
                         }
 
                         session.returnCode.isValueError -> {

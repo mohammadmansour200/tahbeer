@@ -11,11 +11,12 @@ sealed interface DetailScreenAction {
 
     data class OnBurnSubtitle(
         val transcriptionItem: TranscriptionItem,
+        val videoUri: Uri,
         val subtitleStyles: SubtitleStyles
     ) :
         DetailScreenAction
 
     data class OnSeek(val position: Long) : DetailScreenAction
 
-    data class OnLoadMedia(val uri: Uri) : DetailScreenAction
+    data class OnLoadMedia(val uri: Uri?) : DetailScreenAction
 }

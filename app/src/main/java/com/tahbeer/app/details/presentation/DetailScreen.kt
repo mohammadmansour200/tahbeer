@@ -105,7 +105,7 @@ fun DetailScreen(
         DisposableEffect(Unit) {
             viewModel.onAction(
                 DetailScreenAction.OnLoadMedia(
-                    item.mediaUri.toUri()
+                    item.mediaUri?.toUri()
                 )
             )
             onDispose {
@@ -212,7 +212,7 @@ fun DetailScreen(
                                     currentBottomSheet = BottomSheetType.EXPORT
                                 },
                             )
-                            if (transcriptionItem.mediaType == MediaType.VIDEO)
+                            if (transcriptionItem.mediaType != MediaType.AUDIO)
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.burn_menu_item)) },
                                     onClick = {
@@ -229,9 +229,6 @@ fun DetailScreen(
             if (currentBottomSheet != null) {
                 ModalBottomSheet(
                     onDismissRequest = {
-                        if (transcriptionListState.translationProgress != null || state.progress != null)
-                            return@ModalBottomSheet
-
                         currentBottomSheet = null
                     }) {
                     currentBottomSheet?.let { type ->
@@ -273,21 +270,11 @@ fun DetailScreen(
                 ) { status ->
                     when (status) {
                         MediaStatus.LOADING -> {
-                            if (item.mediaType != MediaType.SUBTITLE) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator()
-                                }
-                            } else {
-                                SubtitleCues(
-                                    scrollBehavior = scrollBehavior,
-                                    transcriptionItem = item,
-                                    transcriptionListOnAction = { transcriptionListOnAction(it) },
-                                    mediaCurrentPosition = null,
-                                    onSeek = {}
-                                )
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
                             }
                         }
 
