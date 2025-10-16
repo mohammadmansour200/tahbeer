@@ -184,7 +184,7 @@ fun TranslateBottomSheet(
                         Button(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
+                                .padding(top = 16.dp),
                             onClick = {
                                 if (selectedLanguage.isEmpty()) {
                                     scope.launch {
