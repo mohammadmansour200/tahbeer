@@ -187,7 +187,9 @@ fun StartTranscriptionBottomSheet(
                 Spacer(Modifier.height(4.dp))
 
                 Button(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
                     onClick = {
                         if (!selectedModel.enOnly && selectedLanguage.isEmpty() || !isMedia && selectedLanguage.isEmpty()) {
                             snackScope.launch {

@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -27,6 +28,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.intl.Locale
+import androidx.compose.ui.unit.dp
 import com.tahbeer.app.R
 import com.tahbeer.app.core.domain.model.TranscriptionItem
 import com.tahbeer.app.core.presentation.components.LanguagePickerDialog
@@ -137,7 +139,9 @@ fun TranslateBottomSheet(
                             }
 
                             OutlinedButton(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
                                 onClick = {
                                     onAction(TranscriptionListAction.cancelTranslation)
                                 })
@@ -145,7 +149,9 @@ fun TranslateBottomSheet(
                         }
                     } else {
                         Button(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
                             onClick = {
                                 if (selectedLanguage.isEmpty())
                                     return@Button
