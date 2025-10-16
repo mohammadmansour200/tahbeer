@@ -7,6 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +42,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,8 +54,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -259,7 +263,8 @@ fun DetailScreen(
                                     scrollBehavior = scrollBehavior,
                                     transcriptionItem = item,
                                     transcriptionListOnAction = { transcriptionListOnAction(it) },
-                                    mediaCurrentPosition = null
+                                    mediaCurrentPosition = null,
+                                    onSeek = {}
                                 )
                             }
                         }
@@ -282,7 +287,8 @@ fun DetailScreen(
                                     scrollBehavior = scrollBehavior,
                                     transcriptionItem = item,
                                     transcriptionListOnAction = { transcriptionListOnAction(it) },
-                                    mediaCurrentPosition = state.mediaPosition
+                                    mediaCurrentPosition = state.mediaPosition,
+                                    onSeek = { viewModel.onAction(DetailScreenAction.OnSeek(it)) }
                                 )
                             }
                         }
@@ -291,7 +297,8 @@ fun DetailScreen(
                             scrollBehavior = scrollBehavior,
                             transcriptionItem = item,
                             transcriptionListOnAction = { transcriptionListOnAction(it) },
-                            mediaCurrentPosition = null
+                            mediaCurrentPosition = null,
+                            onSeek = {}
                         )
                     }
                 }
@@ -307,6 +314,7 @@ private fun SubtitleCues(
     transcriptionItem: TranscriptionItem,
     transcriptionListOnAction: (TranscriptionListAction) -> Unit,
     mediaCurrentPosition: Long?,
+    onSeek: (Long) -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -319,9 +327,10 @@ private fun SubtitleCues(
 
     LaunchedEffect(currentCueIndex) {
         if (currentCueIndex != null && currentCueIndex >= 0) {
-            listState.animateScrollToItem(
-                index = currentCueIndex,
-            )
+            if (!listState.layoutInfo.visibleItemsInfo.map { it.index }.contains(currentCueIndex))
+                listState.animateScrollToItem(
+                    index = currentCueIndex,
+                )
         }
     }
 
@@ -353,82 +362,95 @@ private fun SubtitleCues(
                 val textColor by animateColorAsState(
                     targetValue = targetTextColor,
                 )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(color = backgroundColor)
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+
+                val rtlLanguages = listOf("ar", "he", "ur", "fa", "yi", "sd")
+                CompositionLocalProvider(
+                    LocalLayoutDirection provides if (rtlLanguages.contains(
+                            transcriptionItem.lang
+                        )
+                    ) LayoutDirection.Rtl else LayoutDirection.Ltr
                 ) {
-                    // Subtitle cue
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    Row(
+                        modifier = if (mediaCurrentPosition != null) Modifier
+                            .fillMaxWidth()
+                            .background(color = backgroundColor)
+                            .clickable(onClick = { onSeek(result.startTime) })
+                            .padding(16.dp) else Modifier
+                            .fillMaxWidth()
+                            .background(color = backgroundColor)
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "${longToTimestamp(result.startTime)} - ${
-                                longToTimestamp(
-                                    result.endTime
-                                )
-                            }",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = result.text,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = textColor
-                        )
-                    }
+                        // Subtitle cue
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "${longToTimestamp(result.startTime)} - ${
+                                    longToTimestamp(
+                                        result.endTime
+                                    )
+                                }",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = textColor
+                            )
+                            Text(
+                                text = result.text,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = textColor
+                            )
+                        }
 
-                    Spacer(modifier = Modifier.padding(8.dp))
+                        Spacer(modifier = Modifier.padding(8.dp))
 
-                    // Edit Button
-                    var showDialog by remember { mutableStateOf(false) }
-                    IconButton(onClick = { showDialog = true }) {
-                        IconWithTooltip(
-                            icon = Icons.Default.Edit,
-                            text = stringResource(R.string.edit_subtitle_btn),
-                        )
-                    }
-                    if (showDialog) {
-                        var newSubtitle by remember { mutableStateOf(result.text) }
-                        AlertDialog(
-                            onDismissRequest = {
-                                showDialog = false
-                            },
-                            title = {
-                                Text(text = stringResource(R.string.edit_subtitle_btn))
-                            },
-                            text = {
-                                TextField(
-                                    value = newSubtitle,
-                                    onValueChange = { newSubtitle = it },
-                                )
-                            },
-                            confirmButton = {
-                                Button(
-                                    onClick = {
-                                        val subtitles = transcriptionItem.result
-                                        transcriptionListOnAction(
-                                            TranscriptionListAction.OnTranscriptEdit(
-                                                transcriptionId = transcriptionItem.id,
-                                                editedResults = subtitles.toMutableList()
-                                                    .apply {
-                                                        this[index] =
-                                                            this[index].copy(
-                                                                text = newSubtitle
-                                                            )
-                                                    }
+                        // Edit Button
+                        var showDialog by remember { mutableStateOf(false) }
+                        IconButton(onClick = { showDialog = true }) {
+                            IconWithTooltip(
+                                icon = Icons.Default.Edit,
+                                text = stringResource(R.string.edit_subtitle_btn),
+                            )
+                        }
+                        if (showDialog) {
+                            var newSubtitle by remember { mutableStateOf(result.text) }
+                            AlertDialog(
+                                onDismissRequest = {
+                                    showDialog = false
+                                },
+                                title = {
+                                    Text(text = stringResource(R.string.edit_subtitle_btn))
+                                },
+                                text = {
+                                    TextField(
+                                        value = newSubtitle,
+                                        onValueChange = { newSubtitle = it },
+                                    )
+                                },
+                                confirmButton = {
+                                    Button(
+                                        onClick = {
+                                            val subtitles = transcriptionItem.result
+                                            transcriptionListOnAction(
+                                                TranscriptionListAction.OnTranscriptEdit(
+                                                    transcriptionId = transcriptionItem.id,
+                                                    editedResults = subtitles.toMutableList()
+                                                        .apply {
+                                                            this[index] =
+                                                                this[index].copy(
+                                                                    text = newSubtitle
+                                                                )
+                                                        }
+                                                )
                                             )
-                                        )
-                                        showDialog = false
+                                            showDialog = false
+                                        }
+                                    ) {
+                                        Text(stringResource(R.string.confirm_btn))
                                     }
-                                ) {
-                                    Text(stringResource(R.string.confirm_btn))
-                                }
-                            },
-                        )
+                                },
+                            )
+                        }
                     }
                 }
             }
