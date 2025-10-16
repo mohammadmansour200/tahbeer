@@ -6,6 +6,7 @@
     <string name="search_language">ابحث عن اللغة</string>
 
     <string name="download_model_title">حمل إحدى هذه الحزم للبدأ 👇</string>
+    <string name="download_source_model_title">حمل هذه الحزمة للبدأ 👇</string>
     <string name="select_a_model">اختر الحزمة المناسبة</string>
     <string name="language">لغة المادة</string>
     <string name="language_desc">ما لغة الحديث في هذه المادة؟</string>
@@ -52,6 +53,8 @@
     <string name="share_menu_item">مشاركة</string>
     <string name="translate_menu_item">ترجمة</string>
     <string name="translate_to_label">ترجم إلى</string>
+    <string name="translate_error">لغة التفريغ هذا غير معدوم للأسف الشديد.</string>
+    <string name="translate_to_error">رجاء اختر لغة الترجمة التي ترغب بها…</string>
     <string name="export_menu_item">تصدير</string>
     <string name="edit_subtitle_btn">تعديل</string>
     <string name="confirm_btn">تأكيد</string>

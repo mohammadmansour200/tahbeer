@@ -5,6 +5,7 @@
     <string name="close">Close</string>
 
     <string name="download_model_title">Download one of these packs to start 👇</string>
+    <string name="download_source_model_title">Download this pack to start 👇</string>
     <string name="select_a_model">Select a Language Pack</string>
     <string name="language">Speech Language</string>
     <string name="language_desc">What is the speech language of this file?</string>
@@ -51,6 +52,8 @@
     <string name="share_menu_item">Share</string>
     <string name="translate_menu_item">Translate</string>
     <string name="translate_to_label">Translate to</string>
+    <string name="translate_error">This transcription language isn\'t supported unfortunately.</string>
+    <string name="translate_to_error">Please choose the translation language…</string>
     <string name="export_menu_item">Export</string>
     <string name="edit_subtitle_btn">Edit Subtitle</string>
     <string name="confirm_btn">Confirm</string>

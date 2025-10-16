@@ -48,6 +48,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,6 +62,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.mlkit.nl.translate.TranslateLanguage
 import com.tahbeer.app.R
 import com.tahbeer.app.core.domain.model.MediaType
 import com.tahbeer.app.core.domain.model.TranscriptionItem
@@ -77,6 +79,7 @@ import com.tahbeer.app.home.presentation.settings.SettingsState
 import com.tahbeer.app.home.presentation.transcription_list.TranscriptionListAction
 import com.tahbeer.app.home.presentation.transcription_list.TranscriptionListState
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 
@@ -93,6 +96,9 @@ fun DetailScreen(
     val transcriptionItem =
         transcriptionListState.transcriptions.find { it.id == transcriptionListState.selectedTranscriptionId }
     transcriptionItem?.let { item ->
+        val context = LocalContext.current
+        val scope = rememberCoroutineScope()
+
         val viewModel = koinViewModel<DetailScreenViewModel>()
         val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -107,7 +113,6 @@ fun DetailScreen(
             }
         }
 
-        val context = LocalContext.current
         var currentBottomSheet by remember { mutableStateOf<BottomSheetType?>(null) }
 
         var lastDeferred by remember { mutableStateOf<CompletableDeferred<Boolean>?>(null) }
@@ -188,6 +193,14 @@ fun DetailScreen(
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.translate_menu_item)) },
                                 onClick = {
+                                    val sourceLang = TranslateLanguage.fromLanguageTag(item.lang)
+                                    if (sourceLang == null) {
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(context.getString(R.string.translate_error))
+                                        }
+                                        return@DropdownMenuItem
+                                    }
+
                                     menuExpanded = false
                                     currentBottomSheet = BottomSheetType.TRANSLATE
                                 },
@@ -215,6 +228,7 @@ fun DetailScreen(
                 }) {
                     currentBottomSheet?.let { type ->
                         SheetContent(
+                            snackbarHostState = snackbarHostState,
                             bottomSheetType = type,
                             settingsState = settingsState,
                             transcriptionListState = transcriptionListState,

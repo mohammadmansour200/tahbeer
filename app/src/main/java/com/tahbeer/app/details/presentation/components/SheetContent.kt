@@ -1,6 +1,7 @@
 package com.tahbeer.app.details.presentation.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import com.tahbeer.app.core.domain.model.TranscriptionItem
 import com.tahbeer.app.details.presentation.DetailScreenAction
@@ -16,6 +17,7 @@ enum class BottomSheetType {
 
 @Composable
 fun SheetContent(
+    snackbarHostState: SnackbarHostState,
     bottomSheetType: BottomSheetType,
     settingsState: SettingsState,
     transcriptionListState: TranscriptionListState,
@@ -28,6 +30,7 @@ fun SheetContent(
     AnimatedContent(bottomSheetType) { type ->
         when (type) {
             BottomSheetType.TRANSLATE -> TranslateBottomSheet(
+                snackbarHostState = snackbarHostState,
                 settingsState = settingsState,
                 settingsOnAction = { settingsOnAction(it) },
                 transcriptionListState = transcriptionListState,
@@ -36,6 +39,7 @@ fun SheetContent(
             )
 
             BottomSheetType.EXPORT -> ExportBottomSheet(
+                snackbarHostState = snackbarHostState,
                 onAction = { detailScreenAction(it) },
                 transcriptionItem = transcriptionItem
             )

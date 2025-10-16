@@ -20,15 +20,18 @@ import com.tahbeer.app.home.domain.list.SpeechRecognition
 import com.tahbeer.app.home.utils.SubtitleManager.parseSubtitle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.UUID
+import kotlin.coroutines.cancellation.CancellationException
 
 class TranscriptionListViewModel(
     context: Context,
@@ -101,53 +104,58 @@ class TranscriptionListViewModel(
                 val transcriptionItem = _state.value.transcriptions[transcriptionIndex]
                 val totalResultsSize = transcriptionItem.result!!.size
 
-                val sourceLang = TranslateLanguage.fromLanguageTag(transcriptionItem.lang)
-                if (sourceLang.isNullOrEmpty()) {
-                    return
-                }
-                val targetLang = TranslateLanguage.fromLanguageTag(action.outputLang)
-                if (targetLang.isNullOrEmpty()) {
-                    return
-                }
+                val sourceLang = TranslateLanguage.fromLanguageTag(transcriptionItem.lang)!!
+                val targetLang = TranslateLanguage.fromLanguageTag(action.outputLang)!!
 
                 translationJob = viewModelScope.launch {
-                    val options = Builder()
-                        .setSourceLanguage(sourceLang)
-                        .setTargetLanguage(targetLang)
-                        .build()
+                    try {
+                        val options = Builder()
+                            .setSourceLanguage(sourceLang)
+                            .setTargetLanguage(targetLang)
+                            .build()
 
-                    val translator = Translation.getClient(options)
+                        val translator = Translation.getClient(options)
 
-                    val translatedSubtitles =
-                        transcriptionItem.result.mapIndexed { index, entry ->
-                            val translatedText = try {
-                                translator.translate(entry.text).await()
-                            } catch (e: Exception) {
-                                entry.text
+                        val translatedSubtitles =
+                            transcriptionItem.result.mapIndexed { index, entry ->
+                                val translatedText = try {
+                                    translator.translate(entry.text).await()
+                                } catch (_: Exception) {
+                                    entry.text
+                                }
+
+                                _state.update { it.copy(translationProgress = (index + 1).toFloat() / totalResultsSize) }
+
+                                SubtitleEntry(
+                                    startTime = entry.startTime,
+                                    endTime = entry.endTime,
+                                    text = translatedText
+                                )
                             }
 
-                            _state.update { it.copy(translationProgress = (index + 1).toFloat() / totalResultsSize) }
-
-                            SubtitleEntry(
-                                startTime = entry.startTime,
-                                endTime = entry.endTime,
-                                text = translatedText
+                        ensureActive()
+                        _state.update {
+                            it.copy(
+                                transcriptions = it.transcriptions.toMutableList().apply {
+                                    this[transcriptionIndex] =
+                                        this[transcriptionIndex].copy(
+                                            result = translatedSubtitles
+                                        )
+                                },
+                                translationProgress = null
                             )
                         }
 
-                    _state.update {
-                        it.copy(
-                            transcriptions = it.transcriptions.toMutableList().apply {
-                                this[transcriptionIndex] =
-                                    this[transcriptionIndex].copy(
-                                        result = translatedSubtitles
-                                    )
-                            },
-                            translationProgress = null
-                        )
-                    }
+                        ensureActive()
+                        cacheTranscription(_state.value.transcriptions[transcriptionIndex])
 
-                    cacheTranscription(_state.value.transcriptions[transcriptionIndex])
+                    } catch (e: CancellationException) {
+                        throw e
+                    } finally {
+                        if (!isActive) {
+                            _state.update { it.copy(translationProgress = null) }
+                        }
+                    }
                 }
             }
 

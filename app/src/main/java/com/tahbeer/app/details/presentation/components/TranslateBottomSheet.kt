@@ -13,18 +13,21 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.intl.Locale
@@ -33,64 +36,94 @@ import com.tahbeer.app.R
 import com.tahbeer.app.core.domain.model.TranscriptionItem
 import com.tahbeer.app.core.presentation.components.LanguagePickerDialog
 import com.tahbeer.app.home.presentation.components.MlkitDownloaderDialog
+import com.tahbeer.app.home.presentation.components.MlkitModelItem
 import com.tahbeer.app.home.presentation.settings.SettingsAction
 import com.tahbeer.app.home.presentation.settings.SettingsState
 import com.tahbeer.app.home.presentation.transcription_list.TranscriptionListAction
 import com.tahbeer.app.home.presentation.transcription_list.TranscriptionListState
+import kotlinx.coroutines.launch
 
 @Composable
 fun TranslateBottomSheet(
+    snackbarHostState: SnackbarHostState,
     settingsState: SettingsState,
     settingsOnAction: (SettingsAction) -> Unit,
     transcriptionListState: TranscriptionListState,
     onAction: (TranscriptionListAction) -> Unit,
     transcriptionItem: TranscriptionItem
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     var showLanguageDialog by remember { mutableStateOf(false) }
     var selectedLanguage by remember { mutableStateOf("") }
 
+    val sourceMlkitLanguage = settingsState.mlkitModels.find {
+        it.lang == transcriptionItem.lang
+    }!!
+
     val availableLanguages =
         settingsState.mlkitModels.filter { it.isDownloaded && transcriptionItem.lang != it.lang }
-    AnimatedContent(availableLanguages.none { it.isDownloaded }) { noDownloadedModel ->
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    val noDownloadedMlkitLanguages = availableLanguages.none { it.isDownloaded }
+
+    AnimatedContent(noDownloadedMlkitLanguages || (!sourceMlkitLanguage.isDownloaded && sourceMlkitLanguage.lang != "en")) { noDownloadedModel ->
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(16.dp)
+        ) {
             if (noDownloadedModel) {
-                Text(
-                    text = stringResource(R.string.download_model_title),
-                    style = MaterialTheme.typography.titleLarge
-                )
-                var showMlkitDialog by remember { mutableStateOf(false) }
-                TextButton(
-                    onClick = { showMlkitDialog = true },
-                    shape = MaterialTheme.shapes.extraSmall,
-                    contentPadding = PaddingValues()
-                ) {
-                    ListItem(
-                        headlineContent = { Text(text = stringResource(R.string.settings_translate_label)) },
-                        leadingContent = {
-                            Icon(
-                                ImageVector.vectorResource(R.drawable.translate),
-                                contentDescription = null,
+                when {
+                    noDownloadedMlkitLanguages -> {
+                        Text(
+                            text = stringResource(R.string.download_model_title),
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                        var showMlkitDialog by remember { mutableStateOf(false) }
+                        TextButton(
+                            onClick = { showMlkitDialog = true },
+                            shape = MaterialTheme.shapes.extraSmall,
+                            contentPadding = PaddingValues()
+                        ) {
+                            ListItem(
+                                headlineContent = { Text(text = stringResource(R.string.settings_translate_label)) },
+                                leadingContent = {
+                                    Icon(
+                                        ImageVector.vectorResource(R.drawable.translate),
+                                        contentDescription = null,
+                                    )
+                                },
+                                trailingContent = {
+                                    Icon(
+                                        ImageVector.vectorResource(R.drawable.chevron_right),
+                                        contentDescription = null
+                                    )
+                                },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                             )
-                        },
-                        trailingContent = {
-                            Icon(
-                                ImageVector.vectorResource(R.drawable.chevron_right),
-                                contentDescription = null
+                        }
+
+                        if (showMlkitDialog) {
+                            MlkitDownloaderDialog(
+                                languages = settingsState.mlkitModels.filterNot { it.lang == transcriptionItem.lang },
+                                onAction = { settingsOnAction(it) },
+                                onDismissRequest = {
+                                    showMlkitDialog = false
+                                },
                             )
-                        },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                    )
+                        }
+                    }
+
+                    !sourceMlkitLanguage.isDownloaded -> {
+                        Text(
+                            text = stringResource(R.string.download_source_model_title),
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                        MlkitModelItem(
+                            model = sourceMlkitLanguage,
+                            onAction = { settingsOnAction(it) })
+                    }
                 }
 
-                if (showMlkitDialog) {
-                    MlkitDownloaderDialog(
-                        languages = settingsState.mlkitModels.filterNot { it.lang == transcriptionItem.lang },
-                        onAction = { settingsOnAction(it) },
-                        onDismissRequest = {
-                            showMlkitDialog = false
-                        },
-                    )
-                }
             } else {
                 ListItem(
                     modifier = Modifier.clickable { showLanguageDialog = true },
@@ -153,8 +186,12 @@ fun TranslateBottomSheet(
                                 .fillMaxWidth()
                                 .padding(16.dp),
                             onClick = {
-                                if (selectedLanguage.isEmpty())
+                                if (selectedLanguage.isEmpty()) {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(context.getString(R.string.translate_to_error))
+                                    }
                                     return@Button
+                                }
 
                                 onAction(
                                     TranscriptionListAction.OnTranscriptTranslate(
