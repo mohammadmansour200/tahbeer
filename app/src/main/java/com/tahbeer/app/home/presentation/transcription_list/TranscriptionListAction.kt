@@ -25,5 +25,5 @@ sealed interface TranscriptionListAction {
     ) :
         TranscriptionListAction
 
-    object cancelTranslation : TranscriptionListAction
+    object OnCancelTranslation : TranscriptionListAction
 }

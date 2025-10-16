@@ -159,7 +159,7 @@ class TranscriptionListViewModel(
                 }
             }
 
-            TranscriptionListAction.cancelTranslation -> {
+            TranscriptionListAction.OnCancelTranslation -> {
                 _state.update {
                     it.copy(
                         translationProgress = null
@@ -190,7 +190,7 @@ class TranscriptionListViewModel(
                 lang = lang,
                 title = fileName,
                 status = TranscriptionStatus.PROCESSING,
-                mediaUri = uri.toString(),
+                mediaUri = if (mediaType != MediaType.SUBTITLE) uri.toString() else null,
                 mediaType = mediaType,
             )
 

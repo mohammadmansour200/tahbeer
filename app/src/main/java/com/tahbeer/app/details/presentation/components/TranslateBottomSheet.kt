@@ -176,7 +176,7 @@ fun TranslateBottomSheet(
                                     .fillMaxWidth()
                                     .padding(16.dp),
                                 onClick = {
-                                    onAction(TranscriptionListAction.cancelTranslation)
+                                    onAction(TranscriptionListAction.OnCancelTranslation)
                                 })
                             { Text(stringResource(R.string.cancel_btn)) }
                         }
