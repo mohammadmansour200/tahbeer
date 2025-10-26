@@ -63,7 +63,7 @@ dependencies {
     implementation(libs.okhttp)
 
     // FFmpeg-kit
-    implementation(files("../app/libs/ffmpeg-kit-video.aar"))
+    implementation(files("../app/libs/ffmpeg-kit.aar"))
     implementation(libs.smart.exception.java)
 
     // Whisper.cpp
