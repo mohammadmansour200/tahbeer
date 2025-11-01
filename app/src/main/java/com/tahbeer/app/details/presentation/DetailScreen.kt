@@ -174,6 +174,7 @@ fun DetailScreen(
                             onDismissRequest = { menuExpanded = false },
                         ) {
                             DropdownMenuItem(
+                                enabled = item.status == TranscriptionStatus.SUCCESS,
                                 text = { Text(stringResource(R.string.share_menu_item)) },
                                 onClick = {
                                     menuExpanded = false
@@ -191,6 +192,7 @@ fun DetailScreen(
                                 },
                             )
                             DropdownMenuItem(
+                                enabled = item.status == TranscriptionStatus.SUCCESS,
                                 text = { Text(stringResource(R.string.translate_menu_item)) },
                                 onClick = {
                                     val sourceLang = TranslateLanguage.fromLanguageTag(item.lang)
@@ -206,6 +208,7 @@ fun DetailScreen(
                                 },
                             )
                             DropdownMenuItem(
+                                enabled = item.status == TranscriptionStatus.SUCCESS,
                                 text = { Text(stringResource(R.string.export_menu_item)) },
                                 onClick = {
                                     menuExpanded = false
@@ -214,6 +217,7 @@ fun DetailScreen(
                             )
                             if (transcriptionItem.mediaType != MediaType.AUDIO)
                                 DropdownMenuItem(
+                                    enabled = item.status == TranscriptionStatus.SUCCESS,
                                     text = { Text(stringResource(R.string.burn_menu_item)) },
                                     onClick = {
                                         menuExpanded = false
@@ -291,8 +295,9 @@ fun DetailScreen(
                                         mediaType = item.mediaType
                                     )
                                 },
-                            ) {
+                            ) { innerPadding ->
                                 SubtitleCues(
+                                    modifier = Modifier.padding(innerPadding),
                                     scrollBehavior = scrollBehavior,
                                     transcriptionItem = item,
                                     transcriptionListOnAction = { transcriptionListOnAction(it) },
@@ -319,6 +324,7 @@ fun DetailScreen(
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun SubtitleCues(
+    modifier: Modifier = Modifier,
     scrollBehavior: TopAppBarScrollBehavior,
     transcriptionItem: TranscriptionItem,
     transcriptionListOnAction: (TranscriptionListAction) -> Unit,
@@ -344,7 +350,7 @@ private fun SubtitleCues(
     }
 
     LazyColumn(
-        modifier = Modifier
+        modifier = modifier
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         state = listState
     ) {
