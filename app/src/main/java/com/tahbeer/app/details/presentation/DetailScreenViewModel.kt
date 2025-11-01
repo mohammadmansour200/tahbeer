@@ -297,7 +297,14 @@ class DetailScreenViewModel(
                                 action.subtitleStyles, tempAssSubtitleFile, videoWidth, videoHeight
                             )
                             addFadeEffectToAssFile(tempAssSubtitleFile)
-                            replaceDefaultStyleInAssFile(tempAssSubtitleFile)
+
+                            val rtlLanguages = listOf("ar", "he", "ur", "fa", "yi", "sd")
+                            polishAssFile(
+                                tempAssSubtitleFile,
+                                isRtl = rtlLanguages.contains(
+                                    action.transcriptionItem.lang
+                                )
+                            )
 
                             val inputPath =
                                 FFmpegKitConfig.getSafParameterForRead(
@@ -463,19 +470,41 @@ class DetailScreenViewModel(
         tempAssSubtitleFile.writeText(newContent)
     }
 
-    private suspend fun replaceDefaultStyleInAssFile(
+    private suspend fun polishAssFile(
         tempAssSubtitleFile: File,
-        newStyle: String = "CustomStyle"
+        isRtl: Boolean
     ) = withContext(Dispatchers.IO) {
         val assContent = tempAssSubtitleFile.readText()
 
+        // Replace style name
         val styleRegex = Regex("""^(Dialogue:(?:[^,]*?,){3})[^,]+(,.*)$""", RegexOption.MULTILINE)
+        var newContent = assContent.replace(styleRegex, "$1CustomStyle$2")
 
-        val newContent = assContent.replace(styleRegex, "$1$newStyle$2")
+        // Apply RTL fix if content is RTL
+        if (isRtl) {
+            newContent = fixRightToLeft(newContent)
+        }
 
         tempAssSubtitleFile.writeText(newContent)
     }
 
+    private fun fixRightToLeft(content: String): String {
+        val lines = content.lines()
+        return lines.joinToString("\n") { line ->
+            if (line.startsWith("Dialogue:")) {
+                val parts = line.split(",", limit = 10)
+                if (parts.size >= 10) {
+                    val text = parts[9]
+                    val fixedText = "\u202B$text"
+                    parts.take(9).joinToString(",") + "," + fixedText
+                } else {
+                    line
+                }
+            } else {
+                line
+            }
+        }
+    }
 
     private suspend fun observePlaybackEvents() {
         mediaPlaybackManager.events.collectLatest {

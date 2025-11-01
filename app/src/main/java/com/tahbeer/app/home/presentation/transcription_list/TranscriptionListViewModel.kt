@@ -139,9 +139,11 @@ class TranscriptionListViewModel(
                                 transcriptions = it.transcriptions.toMutableList().apply {
                                     this[transcriptionIndex] =
                                         this[transcriptionIndex].copy(
-                                            result = translatedSubtitles
+                                            result = translatedSubtitles,
+                                            lang = action.outputLang
                                         )
                                 },
+
                                 translationProgress = null
                             )
                         }
