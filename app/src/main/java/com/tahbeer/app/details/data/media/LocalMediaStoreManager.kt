@@ -10,7 +10,7 @@ import android.provider.MediaStore
 import androidx.core.net.toUri
 import com.tahbeer.app.core.utils.MimeTypeMap
 import com.tahbeer.app.core.utils.isAudio
-import com.tahbeer.app.core.utils.isText
+import com.tahbeer.app.core.utils.isSubtitle
 import com.tahbeer.app.core.utils.isVideo
 import com.tahbeer.app.details.domain.MediaStoreManager
 import kotlinx.coroutines.Dispatchers
@@ -81,7 +81,10 @@ class LocalMediaStoreManager(private val context: Context) : MediaStoreManager {
             } else {
                 val directory = when {
                     extension.isAudio() -> Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
-                    extension.isText() -> Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
+                    extension.isSubtitle() -> Environment.getExternalStoragePublicDirectory(
+                        Environment.DIRECTORY_DOCUMENTS
+                    )
+
                     extension.isVideo() -> Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)
                     else -> null
                 }

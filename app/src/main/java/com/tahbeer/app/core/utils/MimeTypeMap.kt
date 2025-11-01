@@ -169,6 +169,7 @@ private val mimeTypeData = buildMap {
     put("m4a", "audio/mp4")
 
     put("txt", "text/plain")
+    put("srt", "application/x-subrip")
     put("vtt", "text/vtt")
     put("srt", "text/plain")
     put("txt", "application/octet-stream")

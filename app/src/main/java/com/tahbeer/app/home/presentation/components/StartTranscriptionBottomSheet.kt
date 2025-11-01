@@ -43,8 +43,7 @@ import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
 import com.tahbeer.app.R
 import com.tahbeer.app.core.presentation.components.LanguagePickerDialog
-import com.tahbeer.app.core.utils.isAudio
-import com.tahbeer.app.core.utils.isVideo
+import com.tahbeer.app.core.utils.isSubtitle
 import com.tahbeer.app.home.domain.model.WhisperModel
 import com.tahbeer.app.home.presentation.settings.SettingsAction
 import com.tahbeer.app.home.presentation.transcription_list.TranscriptionListAction
@@ -61,12 +60,26 @@ fun StartTranscriptionBottomSheet(
     val context = LocalContext.current
     val snackScope = rememberCoroutineScope()
     val type = context.contentResolver.getType(pickedUri)
+    val isMedia = type?.isSubtitle() == false
 
-    val isMedia = type?.isVideo() == true || type?.isAudio() == true
+    val supportedLanguages = listOf(
+        "en", "zh", "de", "es", "ru", "ko", "fr", "ja", "pt", "tr",
+        "pl", "ca", "nl", "ar", "sv", "it", "id", "hi", "fi", "vi",
+        "he", "uk", "el", "ms", "cs", "ro", "da", "hu", "ta", "no",
+        "th", "ur", "hr", "bg", "lt", "la", "mi", "ml", "cy", "sk",
+        "te", "fa", "lv", "bn", "sr", "az", "sl", "kn", "et", "mk",
+        "br", "eu", "is", "hy", "ne", "mn", "bs", "kk", "sq", "sw",
+        "gl", "mr", "pa", "si", "km", "sn", "yo", "so", "af", "oc",
+        "ka", "be", "tg", "sd", "gu", "am", "yi", "lo", "uz", "fo",
+        "ht", "ps", "tk", "nn", "mt", "sa", "lb", "my", "bo", "tl",
+        "mg", "as", "tt", "haw", "ln", "ha", "ba", "jw", "su", "yue"
+    )
 
     AnimatedContent(whisperModels.none { it.isDownloaded }) { noDownloadedModel ->
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            if (noDownloadedModel && (isMedia)) {
+
+            // No models downloaded AND we need one (it's media)
+            if (noDownloadedModel && isMedia) {
                 Text(
                     text = stringResource(R.string.download_model_title),
                     style = MaterialTheme.typography.titleLarge
@@ -77,8 +90,21 @@ fun StartTranscriptionBottomSheet(
                     }
                 }
             } else {
-                var selectedModel by remember { mutableStateOf(whisperModels.filter { it.isDownloaded }[0]) }
-                if (isMedia) {
+                var selectedModel by remember {
+                    mutableStateOf(
+                        if (isMedia && !noDownloadedModel) {
+                            whisperModels.first { it.isDownloaded }
+                        } else {
+                            null
+                        }
+                    )
+                }
+
+                var selectedLanguage by rememberSaveable { mutableStateOf("") }
+                var showLanguageDialog by remember { mutableStateOf(false) }
+
+                // Model Picker (Only show if it's media and we have models)
+                if (isMedia && selectedModel != null) {
                     Column(modifier = Modifier.selectableGroup()) {
                         ListItem(
                             modifier = Modifier.padding(PaddingValues()),
@@ -94,10 +120,8 @@ fun StartTranscriptionBottomSheet(
                                     .clip(RoundedCornerShape(8.dp))
                                     .height(56.dp)
                                     .selectable(
-                                        selected = (model.name == selectedModel.name),
-                                        onClick = {
-                                            selectedModel = model
-                                        },
+                                        selected = (model.name == selectedModel!!.name),
+                                        onClick = { selectedModel = model },
                                         role = Role.RadioButton
                                     ),
                                 verticalAlignment = Alignment.CenterVertically
@@ -107,9 +131,7 @@ fun StartTranscriptionBottomSheet(
                                     leadingContent = {
                                         RadioButton(
                                             selected = (model == selectedModel),
-                                            onClick = {
-                                                selectedModel = model
-                                            },
+                                            onClick = { selectedModel = model },
                                         )
                                     },
                                     headlineContent = {
@@ -132,25 +154,11 @@ fun StartTranscriptionBottomSheet(
                     }
                 }
 
-
-                //  languages picker
-                var selectedLanguage by rememberSaveable { mutableStateOf("") }
-                AnimatedVisibility(!selectedModel.enOnly || !isMedia) {
-                    var showLanguageDialog by remember { mutableStateOf(false) }
-
-                    val supportedLanguages = listOf(
-                        "en", "zh", "de", "es", "ru", "ko", "fr", "ja", "pt", "tr",
-                        "pl", "ca", "nl", "ar", "sv", "it", "id", "hi", "fi", "vi",
-                        "he", "uk", "el", "ms", "cs", "ro", "da", "hu", "ta", "no",
-                        "th", "ur", "hr", "bg", "lt", "la", "mi", "ml", "cy", "sk",
-                        "te", "fa", "lv", "bn", "sr", "az", "sl", "kn", "et", "mk",
-                        "br", "eu", "is", "hy", "ne", "mn", "bs", "kk", "sq", "sw",
-                        "gl", "mr", "pa", "si", "km", "sn", "yo", "so", "af", "oc",
-                        "ka", "be", "tg", "sd", "gu", "am", "yi", "lo", "uz", "fo",
-                        "ht", "ps", "tk", "nn", "mt", "sa", "lb", "my", "bo", "tl",
-                        "mg", "as", "tt", "haw", "ln", "ha", "ba", "jw", "su", "yue"
-                    )
-
+                // Language Picker
+                // Shows if:
+                // - It's a subtitle (!isMedia)
+                // - It's media AND the selected model is not English-only
+                AnimatedVisibility(selectedModel?.enOnly != true || !isMedia) {
                     HorizontalDivider()
                     ListItem(
                         colors = ListItemDefaults.colors(
@@ -191,7 +199,11 @@ fun StartTranscriptionBottomSheet(
                         .fillMaxWidth()
                         .padding(16.dp),
                     onClick = {
-                        if (!selectedModel.enOnly && selectedLanguage.isEmpty() || !isMedia && selectedLanguage.isEmpty()) {
+                        // Check if language is required and missing
+                        val model = selectedModel
+                        val needsLanguage = (model != null && !model.enOnly) || !isMedia
+
+                        if (needsLanguage && selectedLanguage.isEmpty()) {
                             snackScope.launch {
                                 snackbarHostState.showSnackbar(context.getString(R.string.select_lang_err))
                             }
@@ -200,8 +212,10 @@ fun StartTranscriptionBottomSheet(
 
                         transcriptionListOnAction(
                             TranscriptionListAction.OnTranscriptFile(
-                                selectedModel.name,
-                                if (!selectedModel.enOnly || !isMedia) selectedLanguage else "en",
+                                // Use model name if it exists, otherwise empty for subtitles
+                                model?.name ?: "",
+                                // Use selected lang if needed, otherwise default to "en"
+                                if (needsLanguage) selectedLanguage else "en",
                                 pickedUri,
                             )
                         )
