@@ -5,12 +5,15 @@
     <string name="close">إغلاق</string>
     <string name="search_language">ابحث عن اللغة</string>
 
-    <string name="download_model_title">حمل إحدى هذه الحزم للبدأ 👇</string>
-    <string name="download_source_model_title">حمل هذه الحزمة للبدأ 👇</string>
-    <string name="select_a_model">اختر الحزمة المناسبة</string>
-    <string name="language">لغة المادة</string>
-    <string name="language_desc">ما لغة الحديث في هذه المادة؟</string>
-    <string name="select_lang_err">رجاء اختر لغة المادة</string>
+    <string name="no_transcriptions_yet">لا يوجد تفريغات حتى الآن</string>
+    <string name="add_first_transcription_hint">اضغط على زر + لإضافة أول تفريغ</string>
+    <string name="download_model_title">حمّل إحدى حزم التعرّف الصوتي للبدء في التفريغ 👇</string>
+    <string name="download_mlkit_model_title">حمّل اللغة التي تحتاج الترجمة لها 👇</string>
+    <string name="download_source_model_title">حمّل هذه اللغة للبدأ في الترجمة 👇</string>
+    <string name="select_a_model">اختر حزمة التعرف على الكلام المناسبة</string>
+    <string name="language">لغة الحديث</string>
+    <string name="language_desc">ما لغة الحديث في هذا الملف؟</string>
+    <string name="select_lang_err">رجاء اختر لغة الحديث</string>
     <string name="start">ابدأ!</string>
     <string name="status_processing">دقائق من فضلك…</string>
     <string name="status_error_processing">حدث خطأ غير معروف أثناء التفريغ…</string>
@@ -20,13 +23,14 @@
     <string name="about_menu_item">عن التطبيق</string>
 
     <string name="settings_model_label">حزم التعرف على الكلام</string>
-    <string name="settings_translate_label">حزم الترجمة</string>
+    <string name="settings_translate_label">لغات الترجمة</string>
     <string name="settings_model_desc">احذف أو حمل الحزم</string>
+    <string name="settings_mlkit_model_desc">احذف أو حمل اللغات</string>
     <string name="settings_model_en_title">الإنجليزية فقط</string>
     <string name="settings_model_multilingual_title">متعدد اللغات</string>
     <string name="settings_model_small_desc">الأسرع بدقة متوسطة للإنجليزية فقط</string>
     <string name="settings_model_medium_desc">توازن بين السرعة والدقة</string>
-    <string name="settings_model_large_desc">أعلى دقة، ولكن أبطأ في الأداء</string>
+    <string name="settings_model_large_desc">أعلى دقة، ولكن أبطأ في السرعة</string>
     <string name="settings_model_download">حمل الحزمة</string>
     <string name="settings_model_delete">حذف الحزمة</string>
     <string name="settings_model_delete_success">حذفت الحزمة بنجاح</string>
@@ -53,7 +57,7 @@
     <string name="share_menu_item">مشاركة</string>
     <string name="translate_menu_item">ترجمة</string>
     <string name="translate_to_label">ترجم إلى</string>
-    <string name="translate_error">لغة التفريغ هذا غير معدوم للأسف الشديد.</string>
+    <string name="translate_error">لغة التفريغ هذه غير معدومة للأسف الشديد.</string>
     <string name="translate_to_error">رجاء اختر لغة الترجمة التي ترغب بها…</string>
     <string name="export_menu_item">تصدير</string>
     <string name="burn_menu_item">دمج مع الفيديو</string>
@@ -71,9 +75,9 @@
     <string name="pos_top">أعلى</string>
     <string name="pos_center">منتصف</string>
     <string name="pos_bottom">أسفل</string>
-    <string name="border_properties">خصائص حد النص</string>
-    <string name="border_color">لون حد النص</string>
-    <string name="border_width">عرض حد النص</string>
+    <string name="border_properties">خصائص تحديد النص</string>
+    <string name="border_color">لون تحديد النص</string>
+    <string name="border_width">عرض تحديد النص</string>
     <string name="edit_subtitle_btn">تعديل</string>
     <string name="confirm_btn">تأكيد</string>
     <string name="cancel_btn">إلغاء</string>

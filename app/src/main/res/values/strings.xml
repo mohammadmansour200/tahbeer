@@ -4,8 +4,11 @@
     <string name="search_language">Search language</string>
     <string name="close">Close</string>
 
-    <string name="download_model_title">Download one of these packs to start 👇</string>
-    <string name="download_source_model_title">Download this pack to start 👇</string>
+    <string name="no_transcriptions_yet">No transcriptions yet</string>
+    <string name="add_first_transcription_hint">Tap the + button to add your first one</string>
+    <string name="download_model_title">Download a pack for speech recognition to start transcription 👇</string>
+    <string name="download_mlkit_model_title">Download the language you want to translate to start translating 👇</string>
+    <string name="download_source_model_title">Download this language to start 👇</string>
     <string name="select_a_model">Select a Language Pack</string>
     <string name="language">Speech Language</string>
     <string name="language_desc">What is the speech language of this file?</string>
@@ -19,8 +22,9 @@
     <string name="about_menu_item">About</string>
 
     <string name="settings_model_label">Speech Recognition Packs</string>
-    <string name="settings_translate_label">Translation Packs</string>
+    <string name="settings_translate_label">Translation Languages</string>
     <string name="settings_model_desc">Download or remove a pack</string>
+    <string name="settings_mlkit_model_desc">Download or remove a language</string>
     <string name="settings_model_en_title">English</string>
     <string name="settings_model_multilingual_title">Multilingual</string>
     <string name="settings_model_small_desc">Fastest, medium accuracy for English only</string>

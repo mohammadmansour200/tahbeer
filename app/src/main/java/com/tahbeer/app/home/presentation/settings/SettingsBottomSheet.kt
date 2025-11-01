@@ -119,7 +119,7 @@ fun SettingsBottomSheet(
             headlineContent = { Text(text = stringResource(R.string.settings_translate_label)) },
             supportingContent = {
                 Text(
-                    text = stringResource(R.string.settings_model_desc),
+                    text = stringResource(R.string.settings_mlkit_model_desc),
                     modifier = Modifier.alpha(0.8f)
                 )
             },

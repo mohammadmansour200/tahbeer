@@ -75,7 +75,7 @@ fun TranslateBottomSheet(
                 when {
                     noDownloadedMlkitLanguages -> {
                         Text(
-                            text = stringResource(R.string.download_model_title),
+                            text = stringResource(R.string.download_mlkit_model_title),
                             style = MaterialTheme.typography.titleLarge
                         )
                         var showMlkitDialog by remember { mutableStateOf(false) }
