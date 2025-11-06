@@ -9,7 +9,7 @@ enum class TranscriptionStatus {
 
 fun com.whispercpp.whisper.SubtitleEntry.toDomainModel(): SubtitleEntry {
     return SubtitleEntry(
-        text = this.text,
+        text = this.text.trim(),
         startTime = this.startTime * 10,
         endTime = this.endTime * 10
     )

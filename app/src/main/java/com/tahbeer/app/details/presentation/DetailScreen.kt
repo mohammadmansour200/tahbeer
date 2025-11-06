@@ -182,7 +182,7 @@ fun DetailScreen(
                                         action = Intent.ACTION_SEND
                                         putExtra(Intent.EXTRA_TEXT, buildString {
                                             transcriptionItem.result?.forEach {
-                                                append(it.text)
+                                                append("${it.text}\n")
                                             }
                                         })
                                         type = "text/plain"
