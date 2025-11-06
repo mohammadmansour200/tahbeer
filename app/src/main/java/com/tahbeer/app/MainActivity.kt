@@ -22,9 +22,14 @@ import org.koin.compose.KoinContext
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        val receivedUri = if (intent?.action == Intent.ACTION_SEND && intent.type != null) {
-            intent.getParcelableExtra<Parcelable>(Intent.EXTRA_STREAM) as? Uri
-        } else null
+        val receivedUri: Uri? = when (intent?.action) {
+            Intent.ACTION_VIEW -> intent.data
+            Intent.ACTION_SEND -> {
+                intent.getParcelableExtra<Parcelable>(Intent.EXTRA_STREAM) as? Uri
+            }
+
+            else -> null
+        }
 
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
