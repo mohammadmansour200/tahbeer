@@ -5,5 +5,5 @@ object CoreConstants {
     val AUDIO_MIME_TYPES =
         arrayOf("audio/mpeg", "audio/aac", "audio/oga", "audio/ogg", "audio/mp4")
     val SUBTITLE_MIME_TYPES =
-        arrayOf("text/vtt", "application/x-subrip", "application/x-srt", "text/plain")
+        arrayOf("text/vtt", "application/*", "text/plain")
 }

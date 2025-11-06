@@ -42,10 +42,8 @@
                 <data android:mimeType="audio/x-m4a" />
                 <data android:mimeType="audio/mp3" />
                 <data android:mimeType="text/vtt" />
-                <data android:mimeType="application/x-srt" />
-                <data android:mimeType="text/plain" />
-                <data android:mimeType="application/x-subrip" />
-                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="application/*" />
+                <data android:mimeType="text/srt" />
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
