@@ -60,6 +60,10 @@
     <string name="translate_to_error">Please choose the translation language…</string>
     <string name="export_menu_item">Export</string>
     <string name="edit_subtitle_btn">Edit Subtitle</string>
+    <string name="copy_subtitle_btn">Copy</string>
+    <string name="split_subtitle_btn">Split</string>
+    <string name="split_subtitle_err">Text is too short to be splitted</string>
+    <string name="delete_subtitle_btn">Delete</string>
     <string name="burn_menu_item">Merge With Video</string>
     <string name="burn_subtitle_btn">Merge</string>
     <string name="section_text_properties">Text Properties</string>

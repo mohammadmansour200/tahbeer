@@ -78,7 +78,11 @@
     <string name="border_properties">خصائص تحديد النص</string>
     <string name="border_color">لون تحديد النص</string>
     <string name="border_width">عرض تحديد النص</string>
+    <string name="copy_subtitle_btn">نسخ</string>
     <string name="edit_subtitle_btn">تعديل</string>
+    <string name="split_subtitle_btn">تقسيم النص</string>
+    <string name="split_subtitle_err">النص أقصر من أن يتم تقسيمه</string>
+    <string name="delete_subtitle_btn">حذف</string>
     <string name="confirm_btn">تأكيد</string>
     <string name="cancel_btn">إلغاء</string>
     <string name="export_btn">تصدير</string>

@@ -5,6 +5,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -13,6 +14,7 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
@@ -23,7 +25,8 @@ fun IconWithTooltip(
     content: @Composable (() -> Unit)? = null,
     text: String,
     @SuppressLint("ModifierParameter") tooltipBoxModifier: Modifier = Modifier,
-    iconModifier: Modifier = Modifier
+    iconModifier: Modifier = Modifier,
+    tint: Color = LocalContentColor.current
 ) {
     val tooltipState = rememberTooltipState(isPersistent = false)
     TooltipBox(
@@ -51,7 +54,8 @@ fun IconWithTooltip(
             Icon(
                 imageVector = icon,
                 contentDescription = text,
-                modifier = iconModifier
+                modifier = iconModifier,
+                tint = tint
             )
         if (content != null) content()
     }

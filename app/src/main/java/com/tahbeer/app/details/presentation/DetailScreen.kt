@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
@@ -54,9 +53,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -77,11 +78,13 @@ import com.tahbeer.app.details.utils.longToTimestamp
 import com.tahbeer.app.home.presentation.settings.SettingsAction
 import com.tahbeer.app.home.presentation.settings.SettingsState
 import com.tahbeer.app.home.presentation.transcription_list.TranscriptionListAction
+import com.tahbeer.app.home.presentation.transcription_list.TranscriptionListEvent
 import com.tahbeer.app.home.presentation.transcription_list.TranscriptionListState
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,6 +93,7 @@ fun DetailScreen(
     transcriptionListState: TranscriptionListState,
     settingsState: SettingsState,
     transcriptionListOnAction: (TranscriptionListAction) -> Unit,
+    transcriptionListEvents: Flow<TranscriptionListEvent> = emptyFlow(),
     settingsOnAction: (SettingsAction) -> Unit,
     onGoBack: () -> Unit
 ) {
@@ -122,6 +126,7 @@ fun DetailScreen(
             lastDeferred?.complete(granted)
         }
 
+
         ObserveAsEvents(events = viewModel.events) {
             when (it) {
                 DetailScreenEvent.Error -> {
@@ -139,8 +144,18 @@ fun DetailScreen(
             }
         }
 
-        val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
         val snackbarHostState = remember { SnackbarHostState() }
+        ObserveAsEvents(events = transcriptionListEvents) {
+            when (it) {
+                TranscriptionListEvent.SplitError -> scope.launch {
+                    snackbarHostState.showSnackbar(
+                        context.getString(R.string.split_subtitle_err)
+                    )
+                }
+            }
+        }
+
+        val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
         Scaffold(
             snackbarHost = { AppSnackbarHost(snackbarHostState = snackbarHostState) },
             topBar = {
@@ -331,6 +346,8 @@ private fun SubtitleCues(
     mediaCurrentPosition: Long?,
     onSeek: (Long) -> Unit
 ) {
+    val appLayoutDirection = LocalLayoutDirection.current
+
     val listState = rememberLazyListState()
 
     val currentCueIndex = transcriptionItem.result
@@ -390,10 +407,12 @@ private fun SubtitleCues(
                             .fillMaxWidth()
                             .background(color = backgroundColor)
                             .clickable(onClick = { onSeek(result.startTime) })
-                            .padding(16.dp) else Modifier
+                            .padding(16.dp)
+                            .animateItem() else Modifier
                             .fillMaxWidth()
                             .background(color = backgroundColor)
-                            .padding(16.dp),
+                            .padding(16.dp)
+                            .animateItem(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Subtitle cue
@@ -416,55 +435,121 @@ private fun SubtitleCues(
                                 color = textColor
                             )
                         }
-
                         Spacer(modifier = Modifier.padding(8.dp))
 
-                        // Edit Button
-                        var showDialog by remember { mutableStateOf(false) }
-                        IconButton(onClick = { showDialog = true }) {
-                            IconWithTooltip(
-                                icon = Icons.Default.Edit,
-                                text = stringResource(R.string.edit_subtitle_btn),
-                            )
-                        }
-                        if (showDialog) {
-                            var newSubtitle by remember { mutableStateOf(result.text) }
-                            AlertDialog(
-                                onDismissRequest = {
-                                    showDialog = false
-                                },
-                                title = {
-                                    Text(text = stringResource(R.string.edit_subtitle_btn))
-                                },
-                                text = {
-                                    TextField(
-                                        value = newSubtitle,
-                                        onValueChange = { newSubtitle = it },
+                        Box {
+                            // More options button
+                            var menuExpanded by remember { mutableStateOf(false) }
+                            IconButton(onClick = { menuExpanded = !menuExpanded }) {
+                                IconWithTooltip(
+                                    icon = Icons.Filled.MoreVert,
+                                    text = stringResource(R.string.more_options),
+                                    tint = textColor
+                                )
+                            }
+
+                            var showEditDialog by remember { mutableStateOf(false) }
+                            CompositionLocalProvider(LocalLayoutDirection provides appLayoutDirection) {
+                                if (showEditDialog) {
+                                    var newSubtitle by remember { mutableStateOf(result.text) }
+                                    AlertDialog(
+                                        onDismissRequest = {
+                                            showEditDialog = false
+                                        },
+                                        title = {
+                                            Text(text = stringResource(R.string.edit_subtitle_btn))
+                                        },
+                                        text = {
+                                            CompositionLocalProvider(
+                                                LocalLayoutDirection provides if (rtlLanguages.contains(
+                                                        transcriptionItem.lang
+                                                    )
+                                                ) LayoutDirection.Rtl else LayoutDirection.Ltr
+                                            ) {
+                                                TextField(
+                                                    value = newSubtitle,
+                                                    onValueChange = { newSubtitle = it },
+                                                )
+                                            }
+                                        },
+                                        confirmButton = {
+                                            Button(
+                                                onClick = {
+                                                    val subtitles = transcriptionItem.result
+                                                    transcriptionListOnAction(
+                                                        TranscriptionListAction.OnSubtitleEntryEdit(
+                                                            transcriptionId = transcriptionItem.id,
+                                                            editedResults = subtitles.toMutableList()
+                                                                .apply {
+                                                                    this[index] =
+                                                                        this[index].copy(
+                                                                            text = newSubtitle
+                                                                        )
+                                                                }
+                                                        )
+                                                    )
+                                                    showEditDialog = false
+                                                }
+                                            ) {
+                                                Text(stringResource(R.string.confirm_btn))
+                                            }
+                                        },
                                     )
-                                },
-                                confirmButton = {
-                                    Button(
+                                }
+
+
+                                DropdownMenu(
+                                    expanded = menuExpanded,
+                                    onDismissRequest = { menuExpanded = false },
+                                ) {
+                                    // Copy text
+                                    val clipboardManager = LocalClipboardManager.current
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.copy_subtitle_btn)) },
                                         onClick = {
-                                            val subtitles = transcriptionItem.result
+                                            menuExpanded = false
+                                            clipboardManager.setText(AnnotatedString(result.text))
+                                        }
+                                    )
+
+                                    // Edit
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.edit_subtitle_btn)) },
+                                        onClick = {
+                                            showEditDialog = true
+                                            menuExpanded = false
+                                        }
+                                    )
+
+                                    // Split
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.split_subtitle_btn)) },
+                                        onClick = {
+                                            menuExpanded = false
                                             transcriptionListOnAction(
-                                                TranscriptionListAction.OnTranscriptEdit(
+                                                TranscriptionListAction.OnSubtitleEntrySplit(
                                                     transcriptionId = transcriptionItem.id,
-                                                    editedResults = subtitles.toMutableList()
-                                                        .apply {
-                                                            this[index] =
-                                                                this[index].copy(
-                                                                    text = newSubtitle
-                                                                )
-                                                        }
+                                                    index = index
                                                 )
                                             )
-                                            showDialog = false
                                         }
-                                    ) {
-                                        Text(stringResource(R.string.confirm_btn))
-                                    }
-                                },
-                            )
+                                    )
+
+                                    // Delete
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.delete_subtitle_btn)) },
+                                        onClick = {
+                                            menuExpanded = false
+                                            transcriptionListOnAction(
+                                                TranscriptionListAction.OnSubtitleEntryDelete(
+                                                    transcriptionId = transcriptionItem.id,
+                                                    index = index
+                                                )
+                                            )
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }

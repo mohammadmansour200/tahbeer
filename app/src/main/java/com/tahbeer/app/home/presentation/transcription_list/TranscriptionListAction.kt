@@ -13,9 +13,21 @@ sealed interface TranscriptionListAction {
 
     data class OnTranscriptClick(val transcriptionId: String?) : TranscriptionListAction
     data class OnTranscriptDelete(val transcriptionId: String) : TranscriptionListAction
-    data class OnTranscriptEdit(
+    data class OnSubtitleEntryEdit(
         val transcriptionId: String,
         val editedResults: List<SubtitleEntry>
+    ) :
+        TranscriptionListAction
+
+    data class OnSubtitleEntrySplit(
+        val transcriptionId: String,
+        val index: Int
+    ) :
+        TranscriptionListAction
+
+    data class OnSubtitleEntryDelete(
+        val transcriptionId: String,
+        val index: Int
     ) :
         TranscriptionListAction
 

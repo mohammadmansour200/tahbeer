@@ -20,9 +20,11 @@ import com.tahbeer.app.home.domain.list.SpeechRecognition
 import com.tahbeer.app.home.utils.SubtitleManager.parseSubtitle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -32,6 +34,7 @@ import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.UUID
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.math.abs
 
 class TranscriptionListViewModel(
     context: Context,
@@ -41,6 +44,9 @@ class TranscriptionListViewModel(
 
     private val _state = MutableStateFlow(TranscriptionListState())
     val state: StateFlow<TranscriptionListState> = _state
+
+    private val _events = Channel<TranscriptionListEvent>()
+    val events = _events.receiveAsFlow()
 
     private var translationJob: Job? = null
     private val transcriptionJobs = mutableMapOf<String, Job>()
@@ -78,7 +84,7 @@ class TranscriptionListViewModel(
                 }
             }
 
-            is TranscriptionListAction.OnTranscriptEdit -> {
+            is TranscriptionListAction.OnSubtitleEntryEdit -> {
                 viewModelScope.launch {
                     val transcriptionIndex =
                         _state.value.transcriptions.indexOfFirst { it.id == action.transcriptionId }
@@ -89,6 +95,79 @@ class TranscriptionListViewModel(
                                 this[transcriptionIndex] =
                                     this[transcriptionIndex].copy(
                                         result = action.editedResults
+                                    )
+                            }
+                        )
+                    }
+                    cacheTranscription(_state.value.transcriptions[transcriptionIndex])
+                }
+            }
+
+            is TranscriptionListAction.OnSubtitleEntrySplit -> {
+                viewModelScope.launch {
+                    val transcriptionIndex =
+                        _state.value.transcriptions.indexOfFirst { it.id == action.transcriptionId }
+                    val currentSubtitleEntry =
+                        _state.value.transcriptions[transcriptionIndex].result?.get(action.index)!!
+
+                    val splitPoint = findBestSubtitleEntrySplitPoint(currentSubtitleEntry.text)
+
+                    if (splitPoint == -1) {
+                        _events.send(TranscriptionListEvent.SplitError)
+                        return@launch
+                    }
+
+                    val newTranscriptionResult =
+                        _state.value.transcriptions[transcriptionIndex].result!!.toMutableList()
+
+                    newTranscriptionResult.removeAt(action.index)
+
+                    val duration = currentSubtitleEntry.endTime - currentSubtitleEntry.startTime
+                    val splitTime = currentSubtitleEntry.startTime + (duration / 2)
+
+                    val firstCue = SubtitleEntry(
+                        startTime = currentSubtitleEntry.startTime,
+                        endTime = splitTime,
+                        text = currentSubtitleEntry.text.take(splitPoint).trim()
+                    )
+                    val secondCue = SubtitleEntry(
+                        startTime = splitTime,
+                        endTime = currentSubtitleEntry.endTime,
+                        text = currentSubtitleEntry.text.substring(splitPoint).trim()
+                    )
+
+                    newTranscriptionResult.addAll(action.index, listOf(firstCue, secondCue))
+
+                    _state.update {
+                        it.copy(
+                            transcriptions = it.transcriptions.toMutableList().apply {
+                                this[transcriptionIndex] =
+                                    this[transcriptionIndex].copy(
+                                        result = newTranscriptionResult
+                                    )
+                            }
+                        )
+                    }
+                    cacheTranscription(_state.value.transcriptions[transcriptionIndex])
+                }
+            }
+
+            is TranscriptionListAction.OnSubtitleEntryDelete -> {
+                viewModelScope.launch {
+                    val transcriptionIndex =
+                        _state.value.transcriptions.indexOfFirst { it.id == action.transcriptionId }
+
+                    val newTranscriptionResult =
+                        _state.value.transcriptions[transcriptionIndex].result!!.toMutableList()
+
+                    newTranscriptionResult.removeAt(action.index)
+
+                    _state.update {
+                        it.copy(
+                            transcriptions = it.transcriptions.toMutableList().apply {
+                                this[transcriptionIndex] =
+                                    this[transcriptionIndex].copy(
+                                        result = newTranscriptionResult
                                     )
                             }
                         )
@@ -297,6 +376,32 @@ class TranscriptionListViewModel(
         }
 
         transcriptionJobs[transcriptionId] = job
+    }
+
+    private fun findBestSubtitleEntrySplitPoint(text: String): Int {
+        val midpoint = text.length / 2
+        var minDistance = Int.MAX_VALUE
+        var bestSplit = -1
+
+        val punctuation = setOf(
+            ',', '.', '!', '?', ';', ':', '-',
+            '¿', '¡',
+            '、', '，', '。', '？', '！', '：', '；',
+            '،', '؟', '؛',
+            '(', ')', '[', ']', '「', '」', '『', '』', '«', '»', '„', '"'
+        )
+        for (i in text.indices) {
+            // Regular space or CJK full-width space
+            if (text[i] == ' ' || text[i] == '\u3000' || text[i] in punctuation) {
+                val distance = abs(i - midpoint)
+                if (distance < minDistance) {
+                    minDistance = distance
+                    bestSplit = i
+                }
+            }
+        }
+
+        return bestSplit
     }
 
     private suspend fun cacheTranscription(transcriptionItem: TranscriptionItem) =
