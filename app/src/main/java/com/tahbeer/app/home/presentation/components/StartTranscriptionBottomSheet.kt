@@ -5,15 +5,16 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -76,7 +77,10 @@ fun StartTranscriptionBottomSheet(
     )
 
     AnimatedContent(whisperModels.none { it.isDownloaded }) { noDownloadedModel ->
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
 
             // No models downloaded AND we need one (it's media)
             if (noDownloadedModel && isMedia) {
@@ -106,12 +110,12 @@ fun StartTranscriptionBottomSheet(
                 // Model Picker (Only show if it's media and we have models)
                 if (isMedia && selectedModel != null) {
                     Column(modifier = Modifier.selectableGroup()) {
-                        ListItem(
-                            modifier = Modifier.padding(PaddingValues()),
-                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                            headlineContent = {
-                                Text(stringResource(R.string.select_a_model))
-                            }
+                        Text(
+                            text = stringResource(R.string.select_a_model),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp)
+                                .padding(top = 16.dp, bottom = 8.dp),
                         )
                         whisperModels.filter { it.isDownloaded }.forEach { model ->
                             Row(
@@ -197,7 +201,7 @@ fun StartTranscriptionBottomSheet(
                 Button(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(bottom = 16.dp, start = 16.dp, end = 16.dp),
                     onClick = {
                         // Check if language is required and missing
                         val model = selectedModel
