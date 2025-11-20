@@ -3,9 +3,11 @@ package com.tahbeer.app.core.presentation.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,6 +18,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -42,7 +45,8 @@ fun LanguagePickerDialog(
     onDismissRequest: () -> Unit
 ) {
     val allLanguages = remember {
-        languages.map { Locale(it).platformLocale }.sortedBy { it.displayLanguage }
+        languages.map { Locale(it).platformLocale }
+            .sortedBy { it.getDisplayLanguage(Locale(it.language).platformLocale) }
     }
 
     var searchQuery by remember { mutableStateOf("") }
@@ -52,7 +56,11 @@ fun LanguagePickerDialog(
             allLanguages
         } else {
             allLanguages.filter {
-                it.displayLanguage.contains(searchQuery, ignoreCase = true)
+                it.displayLanguage.contains(
+                    searchQuery,
+                    ignoreCase = true
+                ) || it.getDisplayLanguage(Locale(it.language).platformLocale)
+                    .contains(searchQuery, ignoreCase = true)
             }
         }
     }
@@ -102,7 +110,37 @@ fun LanguagePickerDialog(
                 ) {
                     items(filteredLanguages, key = { it }) { language ->
                         ListItem(
-                            headlineContent = { Text(language.displayLanguage) },
+                            headlineContent = {
+                                val nativeDisplayName = language.getDisplayLanguage(
+                                    language
+                                )
+                                val localizedDisplayName = language.getDisplayLanguage(
+                                    Locale.current.platformLocale
+                                )
+
+                                val showLocalized = nativeDisplayName != localizedDisplayName
+
+                                Row(
+                                    modifier = Modifier.padding(
+                                        horizontal = 16.dp,
+                                        vertical = 8.dp
+                                    ),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+
+                                    Text(
+                                        text = nativeDisplayName,
+                                    )
+
+                                    if (showLocalized) {
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "($localizedDisplayName)",
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                        )
+                                    }
+                                }
+                            },
                             modifier = Modifier.clickable {
                                 onLanguageSelected(language.language)
                             }
