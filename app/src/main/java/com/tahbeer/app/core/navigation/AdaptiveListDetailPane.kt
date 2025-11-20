@@ -90,6 +90,7 @@ fun AdaptiveListDetailPane(
                     },
                     transcriptionListOnAction = { transcriptionListViewModel.onAction(it) },
                     settingsOnAction = { settingsViewModel.onAction(it) },
+                    transcriptionListEvents = transcriptionListViewModel.events
                 )
             }
         },
