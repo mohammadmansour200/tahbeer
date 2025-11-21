@@ -31,6 +31,12 @@ sealed interface TranscriptionListAction {
     ) :
         TranscriptionListAction
 
+    data class OnLinkVideoWithTranscript(
+        val transcriptionId: String,
+        val uri: Uri,
+    ) :
+        TranscriptionListAction
+
     data class OnTranscriptTranslate(
         val transcriptionId: String,
         val outputLang: String,

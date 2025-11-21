@@ -1,10 +1,6 @@
 package com.tahbeer.app.details.presentation.components
 
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,7 +22,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -34,13 +29,10 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -54,14 +46,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
@@ -69,10 +57,7 @@ import com.arthenica.ffmpegkit.FFmpegKit
 import com.godaddy.android.colorpicker.ClassicColorPicker
 import com.godaddy.android.colorpicker.HsvColor
 import com.tahbeer.app.R
-import com.tahbeer.app.core.domain.model.MediaType
 import com.tahbeer.app.core.domain.model.TranscriptionItem
-import com.tahbeer.app.core.presentation.components.IconWithTooltip
-import com.tahbeer.app.core.utils.fileName
 import com.tahbeer.app.details.presentation.DetailScreenAction
 import com.tahbeer.app.details.presentation.DetailScreenState
 import kotlinx.coroutines.launch
@@ -93,14 +78,13 @@ data class SubtitleStyles(
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun BurnSubtitleSheet(
-    snackbarHostState: SnackbarHostState,
     state: DetailScreenState,
     onAction: (DetailScreenAction) -> Unit,
     transcriptionItem: TranscriptionItem
 ) {
-    var styles by remember { mutableStateOf(SubtitleStyles()) }
-    val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    var styles by remember { mutableStateOf(SubtitleStyles()) }
 
     Column(
         modifier = Modifier
@@ -135,152 +119,6 @@ fun BurnSubtitleSheet(
                 )
             }
         }
-
-        Spacer(Modifier.height(16.dp))
-
-        // Video Picker
-        var selectedVideoUri by remember { mutableStateOf<Uri?>(null) }
-        val videoPickerLauncher = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.GetContent()
-        ) { uri: Uri? ->
-            if (uri == null) return@rememberLauncherForActivityResult
-
-            selectedVideoUri = uri
-        }
-        if (transcriptionItem.mediaType == MediaType.SUBTITLE) {
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            Text(
-                stringResource(R.string.section_choose_video),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(8.dp))
-            OutlinedButton(
-                onClick = { videoPickerLauncher.launch("video/*") },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    ImageVector.vectorResource(R.drawable.videocam),
-                    contentDescription = null,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                Text(text = stringResource(R.string.button_select_video))
-            }
-            AnimatedVisibility(selectedVideoUri != null) {
-                Spacer(Modifier.height(8.dp))
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = ImageVector.vectorResource(R.drawable.movie),
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        Text(
-                            text = selectedVideoUri?.fileName(context) ?: "",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        IconButton(
-                            onClick = { selectedVideoUri = null },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            IconWithTooltip(
-                                icon = Icons.Default.Close,
-                                text = stringResource(R.string.clear_selection_btn)
-                            )
-                        }
-                    }
-                }
-            }
-            Spacer(Modifier.height(16.dp))
-        }
-
-        // Text Properties Section
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-        Text(
-            stringResource(R.string.section_text_properties),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        SliderWithLabel(
-            label = stringResource(R.string.label_font_size),
-            value = styles.fontSize,
-            onValueChange = { newValue -> styles = styles.copy(fontSize = newValue) },
-            valueRange = 12f..96f,
-            steps = 84,
-        )
-
-        FontWeightSelector(
-            currentFontWeight = styles.fontWeight,
-            onFontWeightChange = { newWeight -> styles = styles.copy(fontWeight = newWeight) }
-        )
-
-        ColorPicker(
-            label = stringResource(R.string.label_text_color),
-            currentColor = styles.textColor,
-            onColorSelected = { newColor -> styles = styles.copy(textColor = newColor) },
-            enabled = true
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        // Positioning Section
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-        Text(
-            stringResource(R.string.section_positioning),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        VerticalPositionSelector(
-            currentPosition = styles.verticalPosition,
-            onPositionChange = { newPos -> styles = styles.copy(verticalPosition = newPos) }
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        // Border/Outline Properties Section
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-        Text(
-            text = stringResource(R.string.border_properties),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        val isBorderDisabled = styles.outlineWidth == 0f
-        ColorPicker(
-            label = stringResource(R.string.border_color),
-            currentColor = styles.outlineColor,
-            onColorSelected = { newColor ->
-                if (!isBorderDisabled) {
-                    styles = styles.copy(outlineColor = newColor)
-                }
-            },
-            enabled = !isBorderDisabled
-        )
-
-        SliderWithLabel(
-            label = stringResource(R.string.border_width),
-            value = styles.outlineWidth,
-            onValueChange = { newValue -> styles = styles.copy(outlineWidth = newValue) },
-            valueRange = 0f..8f,
-            steps = 7,
-        )
-
-        Spacer(Modifier.height(16.dp))
-
         // Apply Button
         AnimatedContent(state.isOperating) { isBurning ->
             if (isBurning) {
@@ -310,21 +148,96 @@ fun BurnSubtitleSheet(
                         .fillMaxWidth()
                         .padding(top = 16.dp),
                     onClick = {
-                        if (transcriptionItem.mediaType == MediaType.SUBTITLE && selectedVideoUri == null) {
-                            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.select_video_error)) }
-                            return@Button
-                        }
-
                         onAction(
                             DetailScreenAction.OnBurnSubtitle(
                                 transcriptionItem = transcriptionItem,
                                 subtitleStyles = styles,
-                                videoUri = if (transcriptionItem.mediaType == MediaType.VIDEO) transcriptionItem.mediaUri?.toUri()!! else selectedVideoUri!!
+                                videoUri = transcriptionItem.mediaUri?.toUri()!!
                             )
                         )
                     }) { Text(stringResource(R.string.burn_subtitle_btn)) }
             }
         }
+
+        Spacer(Modifier.height(16.dp))
+
+        // Text Properties Section
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        Text(
+            stringResource(R.string.section_text_properties),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        SliderWithLabel(
+            label = stringResource(R.string.label_font_size),
+            value = styles.fontSize,
+            onValueChange = { newValue -> styles = styles.copy(fontSize = newValue) },
+            valueRange = 12f..96f,
+            steps = 84,
+            enabled = !state.isOperating
+        )
+
+        FontWeightSwitch(
+            currentFontWeight = styles.fontWeight,
+            onFontWeightChange = { newWeight -> styles = styles.copy(fontWeight = newWeight) },
+            enabled = !state.isOperating
+        )
+
+        ColorPicker(
+            label = stringResource(R.string.label_color),
+            currentColor = styles.textColor,
+            onColorSelected = { newColor -> styles = styles.copy(textColor = newColor) },
+            borderEnabled = true,
+            enabled = !state.isOperating
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        // Positioning Section
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        Text(
+            stringResource(R.string.section_positioning),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        VerticalPositionSelector(
+            currentPosition = styles.verticalPosition,
+            onPositionChange = { newPos -> styles = styles.copy(verticalPosition = newPos) },
+            enabled = !state.isOperating
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        // Border/Outline Properties Section
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        Text(
+            text = stringResource(R.string.border_properties),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        val borderEnabled = styles.outlineWidth != 0f
+        ColorPicker(
+            label = stringResource(R.string.label_color),
+            currentColor = styles.outlineColor,
+            onColorSelected = { newColor ->
+                styles = styles.copy(outlineColor = newColor)
+            },
+            borderEnabled = borderEnabled,
+            enabled = !state.isOperating
+        )
+
+        SliderWithLabel(
+            label = stringResource(R.string.border_width),
+            value = styles.outlineWidth,
+            onValueChange = { newValue -> styles = styles.copy(outlineWidth = newValue) },
+            valueRange = 0f..8f,
+            steps = 7,
+            enabled = !state.isOperating
+        )
+        Spacer(Modifier.padding(bottom = 16.dp))
     }
 }
 
@@ -334,7 +247,8 @@ private fun ColorPicker(
     currentColor: Color,
     onColorSelected: (Color) -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean,
+    borderEnabled: Boolean,
+    enabled: Boolean
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -350,7 +264,7 @@ private fun ColorPicker(
             style = MaterialTheme.typography.bodyLarge
         )
         Spacer(Modifier.width(8.dp))
-        val colorForPicker = if (!enabled) {
+        val colorForPicker = if (!borderEnabled || !enabled) {
             Color.LightGray.copy(alpha = 0.4f)
         } else {
             currentColor
@@ -363,10 +277,11 @@ private fun ColorPicker(
                 .background(colorForPicker, CircleShape)
                 .border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant, CircleShape)
                 .clickable {
+                    if (!enabled || !borderEnabled) return@clickable
                     expanded = true
                 }
         ) {
-            if (!enabled) {
+            if (!borderEnabled) {
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
@@ -407,6 +322,7 @@ private fun SliderWithLabel(
     onValueChange: (Float) -> Unit,
     valueRange: ClosedFloatingPointRange<Float>,
     steps: Int,
+    enabled: Boolean
 ) {
     Row(
         modifier = modifier
@@ -424,16 +340,18 @@ private fun SliderWithLabel(
             onValueChange = onValueChange,
             valueRange = valueRange,
             steps = steps,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            enabled = enabled
         )
     }
 }
 
 @Composable
-private fun FontWeightSelector(
+private fun FontWeightSwitch(
     currentFontWeight: FontWeight,
     onFontWeightChange: (FontWeight) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean
 ) {
     Row(
         modifier = modifier
@@ -450,11 +368,15 @@ private fun FontWeightSelector(
         Box(
             modifier = Modifier.weight(1f)
         ) {
-            Switch(currentFontWeight == FontWeight.Bold, onCheckedChange = {
-                onFontWeightChange(
-                    if (it) FontWeight.Bold else FontWeight.Normal
-                )
-            })
+            Switch(
+                checked = currentFontWeight == FontWeight.Bold,
+                onCheckedChange = {
+                    onFontWeightChange(
+                        if (it) FontWeight.Bold else FontWeight.Normal
+                    )
+                },
+                enabled = enabled
+            )
         }
     }
 }
@@ -463,7 +385,8 @@ private fun FontWeightSelector(
 private fun VerticalPositionSelector(
     currentPosition: VerticalPosition,
     onPositionChange: (VerticalPosition) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean
 ) {
     var expanded by remember { mutableStateOf(false) }
     val positions = remember { VerticalPosition.entries }
@@ -492,6 +415,7 @@ private fun VerticalPositionSelector(
             }
             OutlinedButton(
                 onClick = { expanded = true },
+                enabled = enabled
             ) {
                 Text(localizedPositionOption(currentPosition))
                 Icon(Icons.Filled.ArrowDropDown, contentDescription = null)

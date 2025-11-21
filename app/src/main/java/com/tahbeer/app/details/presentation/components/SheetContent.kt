@@ -53,7 +53,6 @@ fun SheetContent(
             )
 
             BottomSheetType.BURN -> BurnSubtitleSheet(
-                snackbarHostState = snackbarHostState,
                 state = detailScreenState,
                 onAction = { detailScreenAction(it) },
                 transcriptionItem = transcriptionItem,

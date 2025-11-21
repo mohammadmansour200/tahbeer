@@ -176,6 +176,33 @@ class TranscriptionListViewModel(
                 }
             }
 
+            is TranscriptionListAction.OnLinkVideoWithTranscript -> {
+                viewModelScope.launch {
+                    val transcriptionIndex =
+                        _state.value.transcriptions.indexOfFirst { it.id == action.transcriptionId }
+
+
+                    val type = appContext.contentResolver.getType(action.uri)
+
+                    val mediaType = when {
+                        type!!.isVideo() -> MediaType.VIDEO
+                        else -> MediaType.AUDIO
+                    }
+                    _state.update {
+                        it.copy(
+                            transcriptions = it.transcriptions.toMutableList().apply {
+                                this[transcriptionIndex] =
+                                    this[transcriptionIndex].copy(
+                                        mediaUri = action.uri.toString(),
+                                        mediaType = mediaType
+                                    )
+                            }
+                        )
+                    }
+                    cacheTranscription(_state.value.transcriptions[transcriptionIndex])
+                }
+            }
+
             is TranscriptionListAction.OnTranscriptTranslate -> {
                 val transcriptionIndex =
                     _state.value.transcriptions.indexOfFirst { it.id == action.transcriptionId }

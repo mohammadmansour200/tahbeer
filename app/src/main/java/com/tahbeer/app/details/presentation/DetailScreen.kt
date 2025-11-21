@@ -65,6 +65,8 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.tahbeer.app.R
+import com.tahbeer.app.core.domain.CoreConstants.AUDIO_MIME_TYPES
+import com.tahbeer.app.core.domain.CoreConstants.VIDEO_MIME_TYPES
 import com.tahbeer.app.core.domain.model.MediaType
 import com.tahbeer.app.core.domain.model.TranscriptionItem
 import com.tahbeer.app.core.domain.model.TranscriptionStatus
@@ -126,6 +128,27 @@ fun DetailScreen(
             lastDeferred?.complete(granted)
         }
 
+        val videoPickerLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocument()
+        ) {
+            if (it != null) {
+                transcriptionListOnAction(
+                    TranscriptionListAction.OnLinkVideoWithTranscript(
+                        item.id,
+                        it
+                    )
+                )
+                viewModel.onAction(
+                    DetailScreenAction.OnLoadMedia(
+                        it
+                    )
+                )
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+        }
 
         ObserveAsEvents(events = viewModel.events) {
             when (it) {
@@ -162,7 +185,7 @@ fun DetailScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            text = transcriptionItem.title,
+                            text = item.title,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -230,7 +253,24 @@ fun DetailScreen(
                                     currentBottomSheet = BottomSheetType.EXPORT
                                 },
                             )
-                            if (transcriptionItem.mediaType != MediaType.AUDIO)
+
+                            if (item.mediaUri == null && item.mediaType == MediaType.SUBTITLE) {
+                                DropdownMenuItem(
+                                    enabled = item.status == TranscriptionStatus.SUCCESS,
+                                    text = { Text(stringResource(R.string.link_menu_item)) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        videoPickerLauncher.launch(
+                                            arrayOf(
+                                                *AUDIO_MIME_TYPES,
+                                                *VIDEO_MIME_TYPES,
+                                            )
+                                        )
+                                    },
+                                )
+                            }
+
+                            if (item.mediaUri != null && item.mediaType != MediaType.AUDIO)
                                 DropdownMenuItem(
                                     enabled = item.status == TranscriptionStatus.SUCCESS,
                                     text = { Text(stringResource(R.string.burn_menu_item)) },
