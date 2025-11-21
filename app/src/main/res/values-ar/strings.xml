@@ -18,6 +18,7 @@
     <string name="status_processing">دقائق من فضلك…</string>
     <string name="status_error_processing">حدث خطأ غير معروف أثناء التفريغ…</string>
     <string name="delete">حذف</string>
+    <string name="edit_title">تعديل العنوان</string>
     <string name="add_transcript_fab">رفع الملف</string>
     <string name="settings_menu_item">الإعدادات</string>
     <string name="about_menu_item">عن التطبيق</string>

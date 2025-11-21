@@ -84,6 +84,25 @@ class TranscriptionListViewModel(
                 }
             }
 
+            is TranscriptionListAction.OnTranscriptEditTitle -> {
+                viewModelScope.launch {
+                    val transcriptionIndex =
+                        _state.value.transcriptions.indexOfFirst { it.id == action.transcriptionId }
+
+                    _state.update {
+                        it.copy(
+                            transcriptions = it.transcriptions.toMutableList().apply {
+                                this[transcriptionIndex] =
+                                    this[transcriptionIndex].copy(
+                                        title = action.newTitle
+                                    )
+                            }
+                        )
+                    }
+                    cacheTranscription(_state.value.transcriptions[transcriptionIndex])
+                }
+            }
+
             is TranscriptionListAction.OnSubtitleEntryEdit -> {
                 viewModelScope.launch {
                     val transcriptionIndex =

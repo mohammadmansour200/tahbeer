@@ -12,7 +12,24 @@ sealed interface TranscriptionListAction {
         TranscriptionListAction
 
     data class OnTranscriptClick(val transcriptionId: String?) : TranscriptionListAction
+
+    data class OnTranscriptEditTitle(val transcriptionId: String, val newTitle: String) :
+        TranscriptionListAction
+
     data class OnTranscriptDelete(val transcriptionId: String) : TranscriptionListAction
+
+    data class OnTranscriptTranslate(
+        val transcriptionId: String,
+        val outputLang: String,
+    ) :
+        TranscriptionListAction
+
+    data class OnLinkVideoWithTranscript(
+        val transcriptionId: String,
+        val uri: Uri,
+    ) :
+        TranscriptionListAction
+
     data class OnSubtitleEntryEdit(
         val transcriptionId: String,
         val editedResults: List<SubtitleEntry>
@@ -28,18 +45,6 @@ sealed interface TranscriptionListAction {
     data class OnSubtitleEntryDelete(
         val transcriptionId: String,
         val index: Int
-    ) :
-        TranscriptionListAction
-
-    data class OnLinkVideoWithTranscript(
-        val transcriptionId: String,
-        val uri: Uri,
-    ) :
-        TranscriptionListAction
-
-    data class OnTranscriptTranslate(
-        val transcriptionId: String,
-        val outputLang: String,
     ) :
         TranscriptionListAction
 

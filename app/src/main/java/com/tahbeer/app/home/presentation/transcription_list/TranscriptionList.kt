@@ -20,17 +20,16 @@ import com.tahbeer.app.home.presentation.transcription_list.components.Transcrip
 
 @Composable
 fun TranscriptionList(
-    transcriptionListState: TranscriptionListState,
-    onItemClick: (String) -> Unit,
-    onItemDelete: (String) -> Unit,
+    state: TranscriptionListState,
+    onAction: (TranscriptionListAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
     ) {
-        if (transcriptionListState.isLoading) {
+        if (state.isLoading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-        } else if (transcriptionListState.transcriptions.isEmpty()) {
+        } else if (state.transcriptions.isEmpty()) {
             Column(
                 modifier = Modifier.align(Alignment.Center),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -49,13 +48,12 @@ fun TranscriptionList(
             }
         } else {
             LazyColumn {
-                items(transcriptionListState.transcriptions, { it.id }) { item ->
+                items(state.transcriptions, { it.id }) { item ->
                     TranscriptionListItem(
                         modifier = Modifier.animateItem(),
                         transcriptionItem = item,
-                        isSelected = transcriptionListState.selectedTranscriptionId == item.id,
-                        onItemClick = { onItemClick(item.id) },
-                        onDeleteClick = { onItemDelete(item.id) },
+                        isSelected = state.selectedTranscriptionId == item.id,
+                        onAction = { onAction(it) }
                     )
                 }
             }

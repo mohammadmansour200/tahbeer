@@ -148,13 +148,8 @@ fun HomeScreen(
             modifier = modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            transcriptionListState = transcriptionListState,
-            onItemClick = {
-                transcriptionListOnAction(TranscriptionListAction.OnTranscriptClick(it))
-            },
-            onItemDelete = {
-                transcriptionListOnAction(TranscriptionListAction.OnTranscriptDelete(it))
-            }
+            state = transcriptionListState,
+            onAction = { transcriptionListOnAction(it) }
         )
 
         pickedUri?.let { uri ->

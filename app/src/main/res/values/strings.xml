@@ -17,6 +17,7 @@
     <string name="status_error_processing">Something went wrong while transcribing…</string>
     <string name="status_processing">Transcribing…</string>
     <string name="delete">Delete</string>
+    <string name="edit_title">Edit Title</string>
     <string name="add_transcript_fab">Upload file</string>
     <string name="settings_menu_item">Settings</string>
     <string name="about_menu_item">About</string>
