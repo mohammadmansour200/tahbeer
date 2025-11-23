@@ -19,6 +19,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -65,11 +66,9 @@ fun TranscriptionListItem(
             targetValue = targetBackgroundColor,
         )
 
-        val targetTextColor = if (!isSelected) {
-            MaterialTheme.colorScheme.onPrimaryContainer
-        } else {
-            MaterialTheme.colorScheme.onSurface
-        }
+        val targetTextColor =
+            if (!isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimaryContainer
+
 
         val textColor by animateColorAsState(
             targetValue = targetTextColor,
@@ -142,7 +141,7 @@ fun TranscriptionListItem(
                     IconWithTooltip(
                         icon = Icons.Filled.MoreVert,
                         text = stringResource(R.string.more_options),
-                        tint = textColor
+                        tint = if (isScreenExpanded) textColor else LocalContentColor.current
                     )
                 }
 
