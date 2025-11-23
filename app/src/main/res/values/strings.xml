@@ -60,7 +60,7 @@
     <string name="translate_error">This transcription language isn\'t supported unfortunately.</string>
     <string name="translate_to_error">Please choose the translation language…</string>
     <string name="export_menu_item">Export</string>
-    <string name="edit_subtitle_btn">Edit Subtitle</string>
+    <string name="edit_subtitle_btn">Edit</string>
     <string name="copy_subtitle_btn">Copy</string>
     <string name="split_subtitle_btn">Split</string>
     <string name="split_subtitle_err">Text is too short to be splitted</string>
@@ -90,7 +90,7 @@
     <string name="export_error_output_file_desc">Either there\'s no space left on device or no permissions to write to storage</string>
     <string name="export_error_invalid_format_title">This format isn\'t supported or invalid</string>
     <string name="export_error_detailed_desc">Error message</string>
-    <string name="export_success">Operation successfully completed! 🎉</string>
+    <string name="export_success">Saved to device successfully! 🎉</string>
     <string name="share_file">Share File!</string>
     <string name="playpause_button_play">Play</string>
     <string name="playpause_button_pause">Pause</string>
