@@ -10,12 +10,14 @@ import com.tahbeer.app.home.domain.settings.ModelDownloadException
 import com.tahbeer.app.home.domain.settings.ModelManager
 import com.tahbeer.app.home.domain.settings.ThemePreferences
 import com.tahbeer.app.home.presentation.settings.SettingsEvent.ModelDownloadError
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 class SettingsViewModel(
     private val themePreferences: ThemePreferences,
@@ -27,6 +29,8 @@ class SettingsViewModel(
 
     private val _events = Channel<SettingsEvent>()
     val events = _events.receiveAsFlow()
+
+    private var whisperModelDownloadingJobs = mutableMapOf<String, Job>()
 
     init {
         viewModelScope.launch {
@@ -54,10 +58,9 @@ class SettingsViewModel(
 
 
             is SettingsAction.OnWhisperModelDownload -> {
-                viewModelScope.launch {
-                    val modelIndex =
-                        _state.value.whisperModels.indexOfFirst { it.name == action.name }
-
+                val modelIndex =
+                    _state.value.whisperModels.indexOfFirst { it.name == action.name }
+                val job = viewModelScope.launch {
                     try {
                         val updatedList = _state.value.whisperModels.toMutableList().apply {
                             this[modelIndex] =
@@ -114,10 +117,13 @@ class SettingsViewModel(
                                 }
                             })
 
+                    } catch (_: CancellationException) {
+
                     } catch (e: Throwable) {
                         Log.e("Download", "Unknown error", e)
                         _events.send(ModelDownloadError(DownloadError.DOWNLOAD_FAILED))
                     } finally {
+                        whisperModelDownloadingJobs.remove(action.name)
                         val updatedList = _state.value.whisperModels.toMutableList().apply {
                             this[modelIndex] =
                                 this[modelIndex].copy(
@@ -129,6 +135,7 @@ class SettingsViewModel(
                         }
                     }
                 }
+                whisperModelDownloadingJobs[action.name] = job
             }
 
             is SettingsAction.OnWhisperModelDelete -> {
@@ -150,23 +157,21 @@ class SettingsViewModel(
                 }
             }
 
-            is SettingsAction.OnMlkitModelDelete -> {
-                viewModelScope.launch {
-                    val modelIndex =
-                        _state.value.mlkitModels.indexOfFirst { it.lang == action.lang }
-                    val updatedList = _state.value.mlkitModels.toMutableList().apply {
-                        this[modelIndex] =
-                            this[modelIndex].copy(
-                                isDownloaded = false,
-                            )
-                    }
-                    _state.update {
-                        it.copy(mlkitModels = updatedList)
-                    }
-
-                    mlkitModelManager.deleteModel(action.lang)
-                    _events.send(SettingsEvent.ModelDeleteSuccess)
+            is SettingsAction.OnWhisperModelDownloadCancel -> {
+                val modelIndex =
+                    _state.value.whisperModels.indexOfFirst { it.name == action.name }
+                val updatedList = _state.value.whisperModels.toMutableList().apply {
+                    this[modelIndex] =
+                        this[modelIndex].copy(
+                            downloadingProgress = null
+                        )
                 }
+                _state.update {
+                    it.copy(whisperModels = updatedList)
+                }
+
+                whisperModelDownloadingJobs[action.name]?.cancel()
+                whisperModelDownloadingJobs.remove(action.name)
             }
 
             is SettingsAction.OnMlkitModelDownload -> {
@@ -236,6 +241,25 @@ class SettingsViewModel(
                             it.copy(mlkitModels = updatedList)
                         }
                     }
+                }
+            }
+
+            is SettingsAction.OnMlkitModelDelete -> {
+                viewModelScope.launch {
+                    val modelIndex =
+                        _state.value.mlkitModels.indexOfFirst { it.lang == action.lang }
+                    val updatedList = _state.value.mlkitModels.toMutableList().apply {
+                        this[modelIndex] =
+                            this[modelIndex].copy(
+                                isDownloaded = false,
+                            )
+                    }
+                    _state.update {
+                        it.copy(mlkitModels = updatedList)
+                    }
+
+                    mlkitModelManager.deleteModel(action.lang)
+                    _events.send(SettingsEvent.ModelDeleteSuccess)
                 }
             }
         }

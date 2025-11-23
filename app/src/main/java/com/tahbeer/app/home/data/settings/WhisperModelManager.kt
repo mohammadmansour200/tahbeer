@@ -7,12 +7,14 @@ import com.tahbeer.app.home.domain.settings.DownloadError
 import com.tahbeer.app.home.domain.settings.ModelDownloadException
 import com.tahbeer.app.home.domain.settings.ModelManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.cancellation.CancellationException
 
 class WhisperModelManager(context: Context) : ModelManager<WhisperModel> {
     private val appContext = context
@@ -50,6 +52,7 @@ class WhisperModelManager(context: Context) : ModelManager<WhisperModel> {
 
             // Check available space
             if (!hasEnoughSpace(model.size)) {
+                deleteModel(name)
                 return@withContext Result.failure(ModelDownloadException(DownloadError.INSUFFICIENT_SPACE))
             }
 
@@ -62,6 +65,7 @@ class WhisperModelManager(context: Context) : ModelManager<WhisperModel> {
             client.newCall(request).execute().use { response ->
                 when {
                     !response.isSuccessful -> {
+                        deleteModel(name)
                         val error = when (response.code) {
                             in 400..599 -> DownloadError.DOWNLOAD_FAILED
                             else -> DownloadError.NETWORK_ERROR
@@ -81,6 +85,13 @@ class WhisperModelManager(context: Context) : ModelManager<WhisperModel> {
                             body.byteStream().use { input ->
                                 var bytesRead = input.read(buffer)
                                 while (bytesRead != -1) {
+                                    if (!coroutineContext.isActive) {
+                                        fileOut.close()
+                                        input.close()
+                                        deleteModel(name)
+                                        throw CancellationException()
+                                    }
+
                                     fileOut.write(buffer, 0, bytesRead)
                                     bytesDownloaded += bytesRead
                                     onProgress((bytesDownloaded.toDouble() / totalBytes).toFloat())

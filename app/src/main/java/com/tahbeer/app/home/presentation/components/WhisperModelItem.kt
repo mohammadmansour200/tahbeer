@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
@@ -83,11 +85,7 @@ fun WhisperModelItem(
                         when (model.isDownloaded) {
                             true -> IconButton(
                                 onClick = {
-                                    onAction(
-                                        SettingsAction.OnWhisperModelDelete(
-                                            model.name
-                                        )
-                                    )
+                                    onAction(SettingsAction.OnWhisperModelDelete(model.name))
                                 },
                             ) {
                                 IconWithTooltip(
@@ -98,11 +96,7 @@ fun WhisperModelItem(
 
                             false -> IconButton(
                                 onClick = {
-                                    onAction(
-                                        SettingsAction.OnWhisperModelDownload(
-                                            model.name
-                                        )
-                                    )
+                                    onAction(SettingsAction.OnWhisperModelDownload(model.name))
                                 },
                             ) {
                                 IconWithTooltip(
@@ -112,23 +106,30 @@ fun WhisperModelItem(
                             }
                         }
                     } else {
-                        when (model.downloadingProgress != null) {
-                            true -> Box(contentAlignment = Alignment.Center) {
+                        Box(contentAlignment = Alignment.Center) {
+                            // The Progress Indicator
+                            if (model.downloadingProgress != null) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.padding(2.dp),
-                                    progress = {
-                                        model.downloadingProgress
-                                    },
+                                    progress = { model.downloadingProgress }
                                 )
-                                Text(
-                                    text = "${
-                                        model.downloadingProgress.times(100).toInt()
-                                    }%",
-                                    style = MaterialTheme.typography.bodySmall
+                            } else {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.padding(2.dp)
                                 )
                             }
 
-                            false -> CircularProgressIndicator(modifier = Modifier.padding(2.dp))
+                            // The Cancel Button
+                            IconButton(
+                                onClick = {
+                                    onAction(SettingsAction.OnWhisperModelDownloadCancel(model.name))
+                                }
+                            ) {
+                                IconWithTooltip(
+                                    icon = Icons.Rounded.Close,
+                                    text = stringResource(R.string.cancel_btn),
+                                )
+                            }
                         }
                     }
                 }
