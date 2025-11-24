@@ -328,7 +328,6 @@ class TranscriptionListViewModel(
                 )
             }
 
-
             // Process the file
             val transcriptionIndex =
                 _state.value.transcriptions.indexOfFirst { it.id == transcriptionItem.id }
@@ -341,7 +340,7 @@ class TranscriptionListViewModel(
                                 transcriptions = it.transcriptions.toMutableList().apply {
                                     this[transcriptionIndex] =
                                         this[transcriptionIndex].copy(
-                                            status = TranscriptionStatus.ERROR_PROCESSING
+                                            status = TranscriptionStatus.ERROR_EMPTY
                                         )
                                 }
                             )
@@ -367,7 +366,7 @@ class TranscriptionListViewModel(
                             transcriptions = it.transcriptions.toMutableList().apply {
                                 this[transcriptionIndex] =
                                     this[transcriptionIndex].copy(
-                                        status = TranscriptionStatus.ERROR_PROCESSING
+                                        status = TranscriptionStatus.ERROR_FORMAT
                                     )
                             }
                         )
@@ -406,12 +405,18 @@ class TranscriptionListViewModel(
                     onFailure = { error ->
                         transcriptionJobs.remove(transcriptionId)
                         Log.e("LibWhisper", error.message.toString(), error)
+
+                        val error = when {
+                            error.message?.contains("Couldn't create context with path") == true -> TranscriptionStatus.ERROR_MODEL
+                            error.message?.contains("FFmpeg conversion failed") == true -> TranscriptionStatus.ERROR_FORMAT
+                            else -> TranscriptionStatus.ERROR_PROCESSING
+                        }
                         _state.update {
                             it.copy(
                                 transcriptions = _state.value.transcriptions.toMutableList().apply {
                                     this[transcriptionIndex] =
                                         this[transcriptionIndex].copy(
-                                            status = TranscriptionStatus.ERROR_PROCESSING
+                                            status = error
                                         )
                                 }
                             )

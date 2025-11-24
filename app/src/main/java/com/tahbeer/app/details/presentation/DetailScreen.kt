@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -58,6 +59,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -311,9 +313,8 @@ fun DetailScreen(
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                // Progress indicator
-                if (transcriptionItem.status == TranscriptionStatus.PROCESSING) {
-                    Box {
+                when (item.status) {
+                    TranscriptionStatus.PROCESSING -> Box {
                         when (transcriptionItem.progress) {
                             null -> LinearProgressIndicator(Modifier.fillMaxWidth())
 
@@ -323,52 +324,86 @@ fun DetailScreen(
                             )
                         }
                     }
-                }
-                Crossfade(
-                    targetState = state.mediaStatus,
-                ) { status ->
-                    when (status) {
-                        MediaStatus.LOADING -> {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
-                            }
-                        }
 
-                        MediaStatus.READY -> {
-                            val sheetState = rememberBottomSheetScaffoldState()
-                            BottomSheetScaffold(
-                                scaffoldState = sheetState,
-                                sheetPeekHeight = 56.dp,
-                                sheetContent = {
-                                    MediaPlayer(
-                                        player = viewModel.player,
-                                        onAction = { viewModel.onAction(it) },
-                                        state = state,
-                                        mediaType = item.mediaType
+                    TranscriptionStatus.SUCCESS -> Crossfade(
+                        targetState = state.mediaStatus,
+                    ) { status ->
+                        when (status) {
+                            MediaStatus.LOADING -> {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
+
+                            MediaStatus.READY -> {
+                                val sheetState = rememberBottomSheetScaffoldState()
+                                BottomSheetScaffold(
+                                    scaffoldState = sheetState,
+                                    sheetPeekHeight = 56.dp,
+                                    sheetContent = {
+                                        MediaPlayer(
+                                            player = viewModel.player,
+                                            onAction = { viewModel.onAction(it) },
+                                            state = state,
+                                            mediaType = item.mediaType
+                                        )
+                                    },
+                                ) { innerPadding ->
+                                    SubtitleCues(
+                                        modifier = Modifier.padding(innerPadding),
+                                        scrollBehavior = scrollBehavior,
+                                        transcriptionItem = item,
+                                        transcriptionListOnAction = { transcriptionListOnAction(it) },
+                                        mediaCurrentPosition = state.mediaPosition,
+                                        onSeek = { viewModel.onAction(DetailScreenAction.OnSeek(it)) }
                                     )
-                                },
-                            ) { innerPadding ->
-                                SubtitleCues(
-                                    modifier = Modifier.padding(innerPadding),
-                                    scrollBehavior = scrollBehavior,
-                                    transcriptionItem = item,
-                                    transcriptionListOnAction = { transcriptionListOnAction(it) },
-                                    mediaCurrentPosition = state.mediaPosition,
-                                    onSeek = { viewModel.onAction(DetailScreenAction.OnSeek(it)) }
+                                }
+                            }
+
+                            else -> SubtitleCues(
+                                scrollBehavior = scrollBehavior,
+                                transcriptionItem = item,
+                                transcriptionListOnAction = { transcriptionListOnAction(it) },
+                                mediaCurrentPosition = null,
+                                onSeek = {}
+                            )
+                        }
+                    }
+
+                    else -> Box(Modifier.fillMaxSize()) {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            val errorTitleResId = when (item.status) {
+                                TranscriptionStatus.ERROR_PROCESSING -> R.string.status_error_processing
+                                TranscriptionStatus.ERROR_EMPTY -> R.string.status_error_empty
+                                TranscriptionStatus.ERROR_FORMAT -> R.string.status_error_format
+                                else -> R.string.status_error_model
+                            }
+                            Text(
+                                text = stringResource(errorTitleResId),
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            val descriptionResId = when (item.status) {
+                                TranscriptionStatus.ERROR_FORMAT if item.mediaType == MediaType.SUBTITLE -> R.string.status_error_format_subtitle_desc
+                                TranscriptionStatus.ERROR_FORMAT -> R.string.status_error_format_desc
+                                TranscriptionStatus.ERROR_MODEL -> R.string.status_error_model_desc
+                                else -> null
+                            }
+                            descriptionResId?.let { resId ->
+                                Text(
+                                    text = stringResource(resId),
+                                    textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
-
-                        else -> SubtitleCues(
-                            scrollBehavior = scrollBehavior,
-                            transcriptionItem = item,
-                            transcriptionListOnAction = { transcriptionListOnAction(it) },
-                            mediaCurrentPosition = null,
-                            onSeek = {}
-                        )
                     }
                 }
             }

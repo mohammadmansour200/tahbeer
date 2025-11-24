@@ -123,9 +123,15 @@ fun TranscriptionListItem(
                             }
                         }
 
-                        TranscriptionStatus.ERROR_PROCESSING -> {
+                        else -> {
+                            val errorTitle = when (transcriptionItem.status) {
+                                TranscriptionStatus.ERROR_PROCESSING -> R.string.status_error_processing
+                                TranscriptionStatus.ERROR_EMPTY -> R.string.status_error_empty
+                                TranscriptionStatus.ERROR_FORMAT -> R.string.status_error_format
+                                else -> R.string.status_error_model
+                            }
                             Text(
-                                text = stringResource(R.string.status_error_processing),
+                                text = stringResource(errorTitle),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error
                             )

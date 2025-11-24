@@ -80,6 +80,8 @@ class SrtParser {
         val cues = mutableListOf<SubtitleEntry>()
         val reader = BufferedReader(InputStreamReader(inputStream, "UTF-8"))
 
+        if (!reader.readText().contains("-->")) throw Exception("This file isn't in SRT format")
+
         var line: String?
         while (reader.readLine().also { line = it } != null) {
             // Skip empty lines and the numeric index line
@@ -139,8 +141,7 @@ object SubtitleManager {
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
-            null
+            throw e
         }
     }
 }

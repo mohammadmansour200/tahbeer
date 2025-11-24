@@ -3,7 +3,7 @@ package com.tahbeer.app.core.domain.model
 import kotlinx.serialization.Serializable
 
 enum class TranscriptionStatus {
-    PROCESSING, ERROR_PROCESSING, SUCCESS
+    PROCESSING, ERROR_PROCESSING, ERROR_EMPTY, ERROR_FORMAT, ERROR_MODEL, SUCCESS,
 }
 
 

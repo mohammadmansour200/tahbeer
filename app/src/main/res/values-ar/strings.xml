@@ -16,7 +16,13 @@
     <string name="select_lang_err">رجاء اختر لغة الحديث</string>
     <string name="start">ابدأ!</string>
     <string name="status_processing">دقائق من فضلك…</string>
-    <string name="status_error_processing">حدث خطأ غير معروف أثناء التفريغ…</string>
+    <string name="status_error_processing">حدث خطأ غير معروف أثناء التفريغ</string>
+    <string name="status_error_empty">لم يتم اكتشاف أي كلام في الملف</string>
+    <string name="status_error_format">تنسيق الملف هذا غير مدعوم</string>
+    <string name="status_error_format_desc">يرجى تحويل الملف إلى صيغة شائعة وإعادة المحاولة.</string>
+    <string name="status_error_format_subtitle_desc">تحبير يدعم فقط صيغتي SRT وVTT</string>
+    <string name="status_error_model">حزمة التعرف على الكلام غير صالحة</string>
+    <string name="status_error_model_desc">يرجى محاولة إعادة تنزيل حزمة التعرف على الكلام والمحاولة مجددًا.</string>
     <string name="delete">حذف</string>
     <string name="edit_title">تعديل العنوان</string>
     <string name="add_transcript_fab">رفع الملف</string>

@@ -14,7 +14,13 @@
     <string name="language_desc">What is the speech language of this file?</string>
     <string name="select_lang_err">Please select a language</string>
     <string name="start">Start!</string>
-    <string name="status_error_processing">Something went wrong while transcribing…</string>
+    <string name="status_error_processing">Something went wrong while transcribing</string>
+    <string name="status_error_empty">No speech detected</string>
+    <string name="status_error_format">This file format is not supported</string>
+    <string name="status_error_format_desc">Please convert the file to a common format (like MP3, WAV, or M4A) and try it again</string>
+    <string name="status_error_format_subtitle_desc">Only SRT and VTT formats are supported</string>
+    <string name="status_error_model">The Speech Recognition Pack corrupted</string>
+    <string name="status_error_model_desc">Please try re-downloading the speech recognition pack and trying again</string>
     <string name="status_processing">Transcribing…</string>
     <string name="delete">Delete</string>
     <string name="edit_title">Edit Title</string>
