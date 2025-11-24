@@ -53,7 +53,8 @@ fun MlkitDownloaderDialog(
                 Locale(it.lang).platformLocale.displayLanguage.contains(
                     searchQuery,
                     ignoreCase = true
-                )
+                ) || Locale(it.lang).platformLocale.getDisplayLanguage(Locale(it.lang).platformLocale)
+                    .contains(searchQuery, ignoreCase = true)
             }
         }
     }
