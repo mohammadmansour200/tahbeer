@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
@@ -19,8 +20,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
@@ -29,6 +35,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -53,12 +61,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
@@ -68,12 +78,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.tahbeer.app.R
 import com.tahbeer.app.core.domain.CoreConstants.AUDIO_MIME_TYPES
+import com.tahbeer.app.core.domain.CoreConstants.SUPPORTED_LANGUAGES
 import com.tahbeer.app.core.domain.CoreConstants.VIDEO_MIME_TYPES
 import com.tahbeer.app.core.domain.model.MediaType
 import com.tahbeer.app.core.domain.model.TranscriptionItem
 import com.tahbeer.app.core.domain.model.TranscriptionStatus
 import com.tahbeer.app.core.presentation.components.AppSnackbarHost
 import com.tahbeer.app.core.presentation.components.IconWithTooltip
+import com.tahbeer.app.core.presentation.components.LanguagePickerDialog
 import com.tahbeer.app.core.presentation.utils.ObserveAsEvents
 import com.tahbeer.app.details.presentation.components.BottomSheetType
 import com.tahbeer.app.details.presentation.components.MediaPlayer
@@ -89,6 +101,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
+
+data class SuccessContentDisplayState(
+    val mediaStatus: MediaStatus,
+    val showSrtFormat: Boolean
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,6 +124,10 @@ fun DetailScreen(
         val context = LocalContext.current
         val scope = rememberCoroutineScope()
 
+        var currentBottomSheet by remember { mutableStateOf<BottomSheetType?>(null) }
+        var showSrtFormat by remember { mutableStateOf(false) }
+        var showLanguageDialog by remember { mutableStateOf(false) }
+
         val viewModel = koinViewModel<DetailScreenViewModel>()
         val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -120,8 +141,6 @@ fun DetailScreen(
                 viewModel.mediaPlaybackManager.releaseMedia()
             }
         }
-
-        var currentBottomSheet by remember { mutableStateOf<BottomSheetType?>(null) }
 
         var lastDeferred by remember { mutableStateOf<CompletableDeferred<Boolean>?>(null) }
         val permissionLauncher = rememberLauncherForActivityResult(
@@ -171,12 +190,15 @@ fun DetailScreen(
 
         val snackbarHostState = remember { SnackbarHostState() }
         ObserveAsEvents(events = transcriptionListEvents) {
-            when (it) {
-                TranscriptionListEvent.SplitError -> scope.launch {
-                    snackbarHostState.showSnackbar(
-                        context.getString(R.string.split_subtitle_err)
-                    )
-                }
+            val errorResId = when (it) {
+                TranscriptionListEvent.SplitError -> R.string.split_subtitle_err
+                TranscriptionListEvent.SrtEmptyError -> R.string.error_srt_empty
+                TranscriptionListEvent.SrtFormatError -> R.string.error_srt_parse_failed
+            }
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    context.getString(errorResId)
+                )
             }
         }
 
@@ -201,8 +223,44 @@ fun DetailScreen(
                         }
                     },
                     actions = {
-                        var menuExpanded by remember { mutableStateOf(false) }
+                        AnimatedVisibility(
+                            visible = showSrtFormat,
+                        ) {
+                            Row {
+                                IconButton(
+                                    onClick = {
+                                        showLanguageDialog = true
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(
+                                                context.getString(R.string.confirm_srt_language)
+                                            )
+                                        }
+                                    }
+                                ) {
+                                    IconWithTooltip(
+                                        icon = Icons.Default.Check,
+                                        text = stringResource(R.string.update_transcription)
+                                    )
+                                }
+                                IconButton(
+                                    onClick = {
+                                        showSrtFormat = false
+                                        transcriptionListOnAction(
+                                            TranscriptionListAction.OnTranscriptEdit(
+                                                null
+                                            )
+                                        )
+                                    }
+                                ) {
+                                    IconWithTooltip(
+                                        icon = Icons.Default.Clear,
+                                        text = stringResource(R.string.discard_update_transcription)
+                                    )
+                                }
+                            }
+                        }
 
+                        var menuExpanded by remember { mutableStateOf(false) }
                         IconButton(onClick = { menuExpanded = !menuExpanded }) {
                             IconWithTooltip(
                                 icon = Icons.Filled.MoreVert,
@@ -281,6 +339,25 @@ fun DetailScreen(
                                         currentBottomSheet = BottomSheetType.BURN
                                     },
                                 )
+
+                            HorizontalDivider()
+
+                            DropdownMenuItem(
+                                enabled = item.status == TranscriptionStatus.SUCCESS,
+                                trailingIcon = {
+                                    if (showSrtFormat) Icon(
+                                        imageVector = Icons.Filled.Check,
+                                        null
+                                    )
+                                },
+                                text = { Text(stringResource(R.string.show_srt_format)) },
+                                onClick = {
+                                    transcriptionListOnAction(
+                                        TranscriptionListAction.OnTranscriptSrtGenerate(item.id)
+                                    )
+                                    showSrtFormat = !showSrtFormat
+                                },
+                            )
                         }
                     },
                     scrollBehavior = scrollBehavior
@@ -308,6 +385,23 @@ fun DetailScreen(
                 }
             }
 
+            if (showLanguageDialog) {
+                LanguagePickerDialog(
+                    onLanguageSelected = { language ->
+                        transcriptionListOnAction(
+                            TranscriptionListAction.OnTranscriptEditConfirm(
+                                transcriptionId = transcriptionItem.id,
+                                language = language
+                            )
+                        )
+                        showSrtFormat = false
+                        showLanguageDialog = false
+                    },
+                    languages = SUPPORTED_LANGUAGES,
+                    onDismissRequest = { showLanguageDialog = false }
+                )
+            }
+
             Column(
                 modifier = modifier
                     .fillMaxSize()
@@ -325,53 +419,78 @@ fun DetailScreen(
                         }
                     }
 
-                    TranscriptionStatus.SUCCESS -> Crossfade(
-                        targetState = state.mediaStatus,
-                    ) { status ->
-                        when (status) {
-                            MediaStatus.LOADING -> {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator()
-                                }
-                            }
-
-                            MediaStatus.READY -> {
-                                val sheetState = rememberBottomSheetScaffoldState()
-                                BottomSheetScaffold(
-                                    scaffoldState = sheetState,
-                                    sheetPeekHeight = 56.dp,
-                                    sheetContent = {
-                                        MediaPlayer(
-                                            player = viewModel.player,
-                                            onAction = { viewModel.onAction(it) },
-                                            state = state,
-                                            mediaType = item.mediaType
+                    TranscriptionStatus.SUCCESS ->
+                        Crossfade(
+                            targetState = SuccessContentDisplayState(
+                                mediaStatus = state.mediaStatus,
+                                showSrtFormat = showSrtFormat
+                            )
+                        ) { displayState ->
+                            if (displayState.showSrtFormat) {
+                                SrtFormatDisplay(
+                                    srtText = transcriptionListState.srtText ?: "",
+                                    onSrtTextChange = {
+                                        transcriptionListOnAction(
+                                            TranscriptionListAction.OnTranscriptEdit(it)
                                         )
-                                    },
-                                ) { innerPadding ->
-                                    SubtitleCues(
-                                        modifier = Modifier.padding(innerPadding),
+                                    })
+                            } else {
+                                when (displayState.mediaStatus) {
+                                    MediaStatus.LOADING -> {
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            CircularProgressIndicator()
+                                        }
+                                    }
+
+                                    MediaStatus.READY -> {
+                                        val sheetState = rememberBottomSheetScaffoldState()
+                                        BottomSheetScaffold(
+                                            scaffoldState = sheetState,
+                                            sheetPeekHeight = 56.dp,
+                                            sheetContent = {
+                                                MediaPlayer(
+                                                    player = viewModel.player,
+                                                    onAction = { viewModel.onAction(it) },
+                                                    state = state,
+                                                    mediaType = item.mediaType
+                                                )
+                                            },
+                                        ) { innerPadding ->
+                                            SubtitleCues(
+                                                modifier = Modifier.padding(innerPadding),
+                                                scrollBehavior = scrollBehavior,
+                                                transcriptionItem = item,
+                                                transcriptionListOnAction = {
+                                                    transcriptionListOnAction(
+                                                        it
+                                                    )
+                                                },
+                                                mediaCurrentPosition = state.mediaPosition,
+                                                onSeek = {
+                                                    viewModel.onAction(
+                                                        DetailScreenAction.OnSeek(
+                                                            it
+                                                        )
+                                                    )
+                                                }
+                                            )
+                                        }
+                                    }
+
+                                    else -> SubtitleCues(
                                         scrollBehavior = scrollBehavior,
                                         transcriptionItem = item,
                                         transcriptionListOnAction = { transcriptionListOnAction(it) },
-                                        mediaCurrentPosition = state.mediaPosition,
-                                        onSeek = { viewModel.onAction(DetailScreenAction.OnSeek(it)) }
+                                        mediaCurrentPosition = null,
+                                        onSeek = {}
                                     )
                                 }
                             }
-
-                            else -> SubtitleCues(
-                                scrollBehavior = scrollBehavior,
-                                transcriptionItem = item,
-                                transcriptionListOnAction = { transcriptionListOnAction(it) },
-                                mediaCurrentPosition = null,
-                                onSeek = {}
-                            )
                         }
-                    }
+
 
                     else -> Box(Modifier.fillMaxSize()) {
                         Column(
@@ -633,4 +752,29 @@ private fun SubtitleCues(
     }
 }
 
+@Composable
+private fun SrtFormatDisplay(
+    srtText: String,
+    onSrtTextChange: (String) -> Unit
+) {
+    val scrollState = rememberScrollState()
 
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(scrollState)
+    ) {
+        BasicTextField(
+            value = srtText,
+            onValueChange = onSrtTextChange,
+            modifier = Modifier
+                .fillMaxWidth(),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            textStyle = MaterialTheme.typography.bodySmall.copy(
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.onSurface
+            ),
+        )
+    }
+}

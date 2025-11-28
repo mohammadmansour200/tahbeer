@@ -9,4 +9,5 @@ data class TranscriptionListState(
     val selectedTranscriptionId: String? = null,
     val isLoading: Boolean = false,
     val translationProgress: Float? = null,
+    val srtText: String? = null
 )

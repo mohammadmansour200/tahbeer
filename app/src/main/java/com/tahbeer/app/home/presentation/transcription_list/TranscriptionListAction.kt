@@ -30,6 +30,22 @@ sealed interface TranscriptionListAction {
     ) :
         TranscriptionListAction
 
+    data class OnTranscriptEditConfirm(
+        val transcriptionId: String,
+        val language: String
+    ) :
+        TranscriptionListAction
+
+    data class OnTranscriptEdit(
+        val srtText: String?,
+    ) :
+        TranscriptionListAction
+
+    data class OnTranscriptSrtGenerate(
+        val transcriptionId: String,
+    ) :
+        TranscriptionListAction
+
     data class OnSubtitleEntryEdit(
         val transcriptionId: String,
         val editedResults: List<SubtitleEntry>

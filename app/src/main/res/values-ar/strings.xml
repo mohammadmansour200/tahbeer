@@ -59,6 +59,12 @@
     <string name="about_github_description">مرخص بموجب رخصة GNU GPLv3؛ يمكنك استخدام الكود المصدري، دراسته، مشاركته، وتحسينه بحرية.</string>
     <string name="about_prayer_note">لا تنسوا الدعاء لنا ولوالدينا وللمسلمين</string>
 
+    <string name="show_srt_format">تحرير كـSRT</string>
+    <string name="update_transcription">تأكيد التعديل</string>
+    <string name="confirm_srt_language">يجب تأكيد لغة الحديث لمحتوى SRT الجديد</string>
+    <string name="discard_update_transcription">إلغاء التحرير</string>
+    <string name="error_srt_parse_failed">تنسيق SRT غير صالح. يرجى التحقق من التنسيق.</string>
+    <string name="error_srt_empty">لم يتم العثور على ترجمة صالحة للحفظ.</string>
     <string name="more_options">المزيد من الخيارات</string>
     <string name="back_btn">الرجوع للخلف</string>
     <string name="share_menu_item">مشاركة</string>

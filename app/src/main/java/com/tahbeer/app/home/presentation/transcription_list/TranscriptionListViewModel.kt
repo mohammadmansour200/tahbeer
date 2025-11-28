@@ -16,6 +16,7 @@ import com.tahbeer.app.core.domain.model.toDomainModel
 import com.tahbeer.app.core.utils.fileName
 import com.tahbeer.app.core.utils.isAudio
 import com.tahbeer.app.core.utils.isVideo
+import com.tahbeer.app.details.utils.longToTimestamp
 import com.tahbeer.app.home.domain.list.SpeechRecognition
 import com.tahbeer.app.home.utils.SubtitleManager.parseSubtitle
 import kotlinx.coroutines.Dispatchers
@@ -295,6 +296,76 @@ class TranscriptionListViewModel(
 
                 translationJob?.cancel()
                 translationJob = null
+            }
+
+            is TranscriptionListAction.OnTranscriptEditConfirm -> {
+                viewModelScope.launch {
+                    val parsedResults = try {
+                        parseSubtitle(_state.value.srtText ?: "")
+                    } catch (_: Exception) {
+                        _events.send(TranscriptionListEvent.SrtFormatError)
+                        return@launch
+                    }
+
+                    if (parsedResults.isNullOrEmpty()) {
+                        _events.send(TranscriptionListEvent.SrtEmptyError)
+                        return@launch
+                    }
+
+                    val transcriptionIndex =
+                        _state.value.transcriptions.indexOfFirst { it.id == action.transcriptionId }
+
+                    _state.update {
+                        it.copy(
+                            transcriptions = it.transcriptions.toMutableList().apply {
+                                this[transcriptionIndex] =
+                                    this[transcriptionIndex].copy(
+                                        result = parsedResults,
+                                        lang = action.language
+                                    )
+                            }
+                        )
+                    }
+                    cacheTranscription(_state.value.transcriptions[transcriptionIndex])
+                }
+            }
+
+            is TranscriptionListAction.OnTranscriptEdit -> {
+                _state.update { it.copy(srtText = action.srtText) }
+            }
+
+            is TranscriptionListAction.OnTranscriptSrtGenerate -> {
+                val transcriptionIndex =
+                    _state.value.transcriptions.indexOfFirst { it.id == action.transcriptionId }
+
+                val srtText =
+                    buildString {
+                        _state.value.transcriptions[transcriptionIndex].result?.let { results ->
+                            for (i in results.indices) {
+                                val item = results[i]
+                                val start = item.startTime
+                                val end = item.endTime
+                                val text = item.text
+
+                                val timestamp = "${
+                                    longToTimestamp(
+                                        start,
+                                        subtitleTimestamp = true,
+                                        comma = true
+                                    )
+                                } --> ${
+                                    longToTimestamp(
+                                        end,
+                                        subtitleTimestamp = true,
+                                        comma = true
+                                    )
+                                }"
+                                append("${i + 1}\n$timestamp\n$text\n\n")
+                            }
+                        }
+                    }
+
+                _state.update { it.copy(srtText = srtText) }
             }
         }
     }

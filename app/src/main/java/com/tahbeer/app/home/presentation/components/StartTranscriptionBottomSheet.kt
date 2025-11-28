@@ -43,6 +43,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
 import com.tahbeer.app.R
+import com.tahbeer.app.core.domain.CoreConstants.SUPPORTED_LANGUAGES
 import com.tahbeer.app.core.presentation.components.LanguagePickerDialog
 import com.tahbeer.app.core.utils.isSubtitle
 import com.tahbeer.app.home.domain.model.WhisperModel
@@ -62,19 +63,6 @@ fun StartTranscriptionBottomSheet(
     val snackScope = rememberCoroutineScope()
     val type = context.contentResolver.getType(pickedUri)
     val isMedia = type?.isSubtitle() == false
-
-    val supportedLanguages = listOf(
-        "en", "zh", "de", "es", "ru", "ko", "fr", "ja", "pt", "tr",
-        "pl", "ca", "nl", "ar", "sv", "it", "id", "hi", "fi", "vi",
-        "he", "uk", "el", "ms", "cs", "ro", "da", "hu", "ta", "no",
-        "th", "ur", "hr", "bg", "lt", "la", "mi", "ml", "cy", "sk",
-        "te", "fa", "lv", "bn", "sr", "az", "sl", "kn", "et", "mk",
-        "br", "eu", "is", "hy", "ne", "mn", "bs", "kk", "sq", "sw",
-        "gl", "mr", "pa", "si", "km", "sn", "yo", "so", "af", "oc",
-        "ka", "be", "tg", "sd", "gu", "am", "yi", "lo", "uz", "fo",
-        "ht", "ps", "tk", "nn", "mt", "sa", "lb", "my", "bo", "tl",
-        "mg", "as", "tt", "haw", "ln", "ha", "ba", "jw", "su", "yue"
-    )
 
     AnimatedContent(whisperModels.none { it.isDownloaded }) { noDownloadedModel ->
         Column(
@@ -190,7 +178,7 @@ fun StartTranscriptionBottomSheet(
                                 selectedLanguage = language
                                 showLanguageDialog = false
                             },
-                            languages = supportedLanguages,
+                            languages = SUPPORTED_LANGUAGES,
                             onDismissRequest = { showLanguageDialog = false }
                         )
                     }
